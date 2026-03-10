@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f8fafc;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --destructive: #ef4444;
+    --streak: #ec4899;
+    --glass: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(148, 163, 184, 0.2);
+    --shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 20px 40px -6px rgba(0, 0, 0, 0.12), 0 8px 12px -4px rgba(0, 0, 0, 0.08);
+    --glass-hover: rgba(255, 255, 255, 0.98);
+  }
+
+  .dark {
+    --bg-primary: #0a0f1f;
+    --bg-secondary: #0f172a;
+    --bg-tertiary: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --primary: #60a5fa;
+    --primary-foreground: #0a0f1f;
+    --success: #34d399;
+    --warning: #f59e0b;
+    --destructive: #ef4444;
+    --streak: #f472b6;
+    --glass: rgba(15, 23, 42, 0.9);
+    --glass-border: rgba(148, 163, 184, 0.4);
+    --shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 20px 40px -6px rgba(0, 0, 0, 0.8), 0 8px 12px -4px rgba(0, 0, 0, 0.6);
+    --glass-hover: rgba(15, 23, 42, 0.98);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+  
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background-color: var(--glass);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    border-radius: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .glass-card:hover {
+    box-shadow: var(--shadow-hover);
+    background-color: var(--glass-hover);
+  }
+  
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  
+  .text-primary {
+    color: var(--primary);
+  }
+  
+  .text-success {
+    color: var(--success);
+  }
+  
+  .text-warning {
+    color: var(--warning);
+  }
+  
+  .text-destructive {
+    color: var(--destructive);
+  }
+  
+  .text-streak {
+    color: var(--streak);
+  }
+  
+  .border-border {
+    border-color: var(--border);
+  }
+  
+  .bg-secondary {
+    background-color: var(--bg-secondary);
+  }
+  
+  .text-foreground {
+    color: var(--text-primary);
+  }
+  
+  .text-muted-foreground {
+    color: var(--text-muted);
+  }
+  
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+  }
+  
+  /* Cantos arredondados em todos os componentes */
+  .rounded-lg, .rounded-xl, .rounded-2xl {
+    border-radius: 1.5rem !important;
+  }
+  
+  /* Botões com cantos arredondados */
+  button, input, select {
+    border-radius: 1.5rem !important;
+  }
+  
+  /* Cards com cantos arredondados */
+  .card, .glass-card {
+    border-radius: 1.5rem !important;
+  }
+  
+  /* Inputs e formulários */
+  input, textarea, select {
+    border-radius: 1.5rem !important;
+  }
+  
+  /* Sidebar e layout */
+  aside, main, section, article {
+    border-radius: 1.5rem !important;
+  }
+}
