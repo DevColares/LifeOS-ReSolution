@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera } from "lucide-react";
+import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X } from "lucide-react";
 import { useDataExport } from "@/hooks/useDataExport";
+import { useTheme } from "@/hooks/useTheme";
 
 interface SettingsProps {
   userProfile: { name: string; photo: string };
@@ -11,15 +12,27 @@ export default function Settings({ userProfile, setUserProfile }: SettingsProps)
   const [isImporting, setIsImporting] = useState(false);
   const [, setImportError] = useState<string | null>(null);
   const { exportData, importData, clearData } = useDataExport();
+  const { isDark, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("A imagem é muito grande! Por favor, escolha uma imagem com menos de 2MB.");
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setUserProfile(prev => ({ ...prev, photo: reader.result as string }));
+        try {
+          setUserProfile(prev => ({ ...prev, photo: reader.result as string }));
+        } catch (error) {
+          console.error("Erro ao salvar foto:", error);
+          alert("Erro ao salvar a foto. Tente uma imagem menor.");
+        }
       };
+      reader.onerror = () => alert("Erro ao ler o arquivo.");
       reader.readAsDataURL(file);
     }
   };
@@ -92,7 +105,17 @@ export default function Settings({ userProfile, setUserProfile }: SettingsProps)
             </div>
 
             <div className="flex-1 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Seu Nome</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Seu Nome</label>
+                {userProfile.photo && (
+                  <button
+                    onClick={() => setUserProfile(prev => ({ ...prev, photo: "" }))}
+                    className="text-[10px] font-bold text-destructive hover:underline flex items-center gap-1"
+                  >
+                    <X className="h-3 w-3" /> Remover Foto
+                  </button>
+                )}
+              </div>
               <input
                 value={userProfile.name}
                 onChange={(e) => setUserProfile(prev => ({ ...prev, name: e.target.value }))}
@@ -101,6 +124,32 @@ export default function Settings({ userProfile, setUserProfile }: SettingsProps)
               />
             </div>
           </div>
+        </div>
+
+        {/* Theme Management */}
+        <div className="glass-card p-8 space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-display font-bold">Aparência</h3>
+            <p className="text-sm text-muted-foreground">Escolha o tema do seu sistema.</p>
+          </div>
+
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary/50 hover:bg-secondary transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-background rounded-xl">
+                {isDark ? <Sun className="h-5 w-5 text-warning" /> : <Moon className="h-5 w-5 text-primary" />}
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">{isDark ? "Modo Claro" : "Modo Escuro"}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Clique para alternar</p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${isDark ? 'bg-primary' : 'bg-muted/30'}`}>
+              <div className={`h-4 w-4 bg-white rounded-full transition-transform ${isDark ? 'translate-x-6' : 'translate-x-0'}`} />
+            </div>
+          </button>
         </div>
 
         <div className="glass-card p-8 space-y-6">
