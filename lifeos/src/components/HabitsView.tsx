@@ -18,7 +18,7 @@ export default function HabitsView({ habits, setHabits, goals }: HabitsViewProps
   const yesterdayStr = yesterday.toISOString().split("T")[0];
 
   const [newHabit, setNewHabit] = useState("");
-  const [categories, setCategories] = useLocalStorage<string[]>("lifeos-habit-categories", defaultCategories, defaultCategories);
+  const [categories, setCategories] = useLocalStorage<string[]>("lifeos-habit-categories", defaultCategories);
   const [newCategory, setNewCategory] = useState(categories[0]);
   const [selectedGoalId, setSelectedGoalId] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");

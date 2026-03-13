@@ -2,14 +2,6 @@ import { useState, useRef } from "react";
 import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera } from "lucide-react";
 import { useDataExport } from "@/hooks/useDataExport";
 
-import { Habit, Goal } from "@/lib/types";
-import { Flame, Target, CheckCircle2 } from "lucide-react";
-
-interface DashboardProps {
-  userProfile: { name: string; photo: string };
-  setUserProfile: React.Dispatch<React.SetStateAction<{ name: string; photo: string }>>;
-}
-
 interface SettingsProps {
   userProfile: { name: string; photo: string };
   setUserProfile: React.Dispatch<React.SetStateAction<{ name: string; photo: string }>>;

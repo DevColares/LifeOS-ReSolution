@@ -21,12 +21,12 @@ const Index = () => {
       <main className="flex-1 h-full overflow-y-auto no-scrollbar pb-32 md:pb-8">
         <div className="max-w-6xl mx-auto p-6 md:p-12 lg:p-16">
           {view === "dashboard" && (
-            <Dashboard habits={habits} goals={goals} userProfile={userProfile} setUserProfile={setUserProfile} />
+            <Dashboard habits={habits} goals={goals} userProfile={userProfile} />
           )}
           {view === "habits" && <HabitsView habits={habits} setHabits={setHabits} goals={goals} />}
           {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} habits={habits} />}
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
-          {view === "settings" && <Settings />}
+          {view === "settings" && <Settings userProfile={userProfile} setUserProfile={setUserProfile} />}
         </div>
       </main>
     </div>
