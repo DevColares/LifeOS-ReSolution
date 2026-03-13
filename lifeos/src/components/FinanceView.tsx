@@ -362,43 +362,43 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                     <Plus className="h-5 w-5 text-primary" />
                     Novo Lançamento
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-5 gap-y-7">
                     <div className="space-y-2 lg:col-span-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Descrição</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Descrição</label>
                         <input
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Ex: Mercado mensal"
-                            className="w-full bg-secondary/50 dark:bg-secondary/50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white"
+                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
                         />
                     </div>
 
                     <div className="space-y-2 lg:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Valor (R$)</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Valor (R$)</label>
                         <input
                             type="number"
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
                             placeholder="0,00"
-                            className="w-full bg-secondary/50 dark:bg-secondary/50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white"
+                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
                         />
                     </div>
 
                     <div className="space-y-2 lg:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Data</label>
-                        <div className="relative">
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Data</label>
+                        <div className="relative group">
+                            <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 group-hover:text-primary transition-colors" />
                             <input
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-secondary/50 dark:bg-secondary/50 border-none rounded-xl pl-11 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none text-slate-800 dark:text-white"
+                                className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none text-slate-800 dark:text-white transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2 lg:col-span-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Categoria</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Categoria</label>
                         <div className="flex gap-2">
                             <select
                                 value={type}
@@ -407,7 +407,12 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                     setType(newType);
                                     setCategory(categories[newType][0]);
                                 }}
-                                className="bg-secondary/50 dark:bg-secondary/50 px-3 py-3 rounded-xl text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-800 dark:text-white"
+                                className={cn(
+                                    "w-[90px] px-2 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-tighter border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all",
+                                    type === 'income'
+                                        ? "bg-success/10 text-success hover:bg-success/20"
+                                        : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                                )}
                             >
                                 <option value="expense">Saída</option>
                                 <option value="income">Entrada</option>
@@ -415,7 +420,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                             <select
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
-                                className="flex-1 bg-secondary/50 dark:bg-secondary/50 px-4 py-3 rounded-xl text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-800 dark:text-white"
+                                className="flex-1 bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-4 py-3.5 rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-800 dark:text-white transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
                             >
                                 {categories[type].map((cat: string) => (
                                     <option key={cat} value={cat}>{cat}</option>
@@ -423,9 +428,9 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                             </select>
                             <button
                                 onClick={() => setShowAddCat(!showAddCat)}
-                                className="p-3 rounded-xl bg-secondary/50 dark:bg-secondary/80 hover:bg-secondary transition-all"
+                                className="p-4 rounded-2xl bg-primary/10 hover:bg-primary/20 transition-all shrink-0 text-primary border border-primary/5 shadow-sm shadow-primary/5"
                             >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-4 w-4 stroke-[3px]" />
                             </button>
                         </div>
                         {showAddCat && (
@@ -433,10 +438,15 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                 <input
                                     value={newCatName}
                                     onChange={(e) => setNewCatName(e.target.value)}
-                                    placeholder="Nova categoria..."
-                                    className="flex-1 bg-secondary/80 dark:bg-secondary/50 border-none rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
+                                    placeholder="Nome da categoria..."
+                                    className="flex-1 bg-secondary/80 dark:bg-secondary/10 border border-slate-300 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white shadow-inner"
                                 />
-                                <button onClick={addCategory} className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-bold shrink-0">Add</button>
+                                <button
+                                    onClick={addCategory}
+                                    className="px-4 py-2 bg-primary dark:bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest shrink-0 shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                                >
+                                    Add
+                                </button>
                             </div>
                         )}
                     </div>
@@ -444,10 +454,10 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                     <div className="flex items-end lg:col-span-2">
                         <button
                             onClick={addTransaction}
-                            className="w-full h-[48px] rounded-xl bg-primary text-white font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            className="w-full h-[52px] rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-2 group"
                         >
-                            <Plus className="h-5 w-5" />
-                            <span>Adicionar</span>
+                            <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+                            <span>Lançar</span>
                         </button>
                     </div>
                 </div>

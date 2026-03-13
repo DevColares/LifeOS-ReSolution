@@ -84,30 +84,39 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
       {/* Top Section: Balance + Graph */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card p-8 flex flex-col justify-between min-h-[220px]">
-          <div className="flex justify-between items-start">
-            <div className="p-4 rounded-[2rem] bg-primary/10 text-primary">
+        <div className="glass-card p-8 flex flex-col justify-between min-h-[220px] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
+
+          <div className="flex justify-between items-start relative z-10">
+            <div className="p-4 rounded-2xl bg-primary/10 text-primary shrink-0">
               <Wallet className="h-8 w-8" />
             </div>
-            <div className="text-right">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Saldo Disponível</span>
-              <p className={cn("text-4xl font-display font-black mt-1", totalBalance >= 0 ? "text-foreground" : "text-destructive")}>
+            <div className="text-right min-w-0">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Saldo Disponível</span>
+              <p className={cn("text-3xl sm:text-4xl font-display font-black mt-1 truncate", totalBalance >= 0 ? "text-slate-900 dark:text-white" : "text-destructive")}>
                 {formatCurrency(totalBalance)}
               </p>
             </div>
           </div>
-          <div className="mt-8 pt-6 border-t border-white/5 flex gap-8">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Entradas (Mês)</p>
-              <p className="text-xl font-display font-bold text-success">
-                {formatCurrency(transactions.filter(t => t.type === 'income' && t.isCompleted && new Date(t.date).getMonth() === new Date().getMonth()).reduce((a, b) => a + b.value, 0))}
-              </p>
+
+          <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-white/5 relative z-10">
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Entradas (Mês)</p>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-success opacity-40" />
+                <p className="text-lg sm:text-xl font-display font-bold text-success truncate">
+                  {formatCurrency(transactions.filter(t => t.type === 'income' && t.isCompleted && new Date(t.date + 'T12:00:00').getMonth() === new Date().getMonth()).reduce((a, b) => a + b.value, 0))}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Saídas (Mês)</p>
-              <p className="text-xl font-display font-bold text-destructive">
-                {formatCurrency(transactions.filter(t => t.type === 'expense' && t.isCompleted && new Date(t.date).getMonth() === new Date().getMonth()).reduce((a, b) => a + b.value, 0))}
-              </p>
+            <div className="space-y-1 px-4 border-l border-slate-100 dark:border-white/5">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Saídas (Mês)</p>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-destructive opacity-40" />
+                <p className="text-lg sm:text-xl font-display font-bold text-destructive truncate">
+                  {formatCurrency(transactions.filter(t => t.type === 'expense' && t.isCompleted && new Date(t.date + 'T12:00:00').getMonth() === new Date().getMonth()).reduce((a, b) => a + b.value, 0))}
+                </p>
+              </div>
             </div>
           </div>
         </div>
