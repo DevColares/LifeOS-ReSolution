@@ -43,4 +43,6 @@ export interface Transaction {
   category: string;
   isCompleted: boolean;
   type: 'income' | 'expense';
+  installments?: number;
+  currentInstallment?: number;
 }

@@ -2,10 +2,11 @@ import React, { useState, useMemo } from "react";
 import { Transaction } from "@/lib/types";
 import {
     Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar,
-    DollarSign, Check, ChevronLeft, ChevronRight, BarChart3
+    DollarSign, Check, ChevronLeft, ChevronRight, BarChart3, Repeat
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { addMonths, format, parseISO } from 'date-fns';
 import {
     Dialog,
     DialogContent,
@@ -35,6 +36,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
     const [category, setCategory] = useState(defaultCategories.expense[0]);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+    const [repeatCount, setRepeatCount] = useState("1");
 
     const [categories] = useLocalStorage("lifeos-finance-categories", defaultCategories);
 
@@ -68,19 +70,31 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
     const addTransaction = () => {
         if (!description || !value) return;
 
-        const newTransaction: Transaction = {
-            id: crypto.randomUUID(),
-            description,
-            value: parseFloat(value),
-            type,
-            category,
-            date,
-            isCompleted: false
-        };
+        const count = parseInt(repeatCount) || 1;
+        const baseDate = parseISO(date);
+        const newTransactions: Transaction[] = [];
 
-        setTransactions(prev => [newTransaction, ...prev]);
+        for (let i = 0; i < count; i++) {
+            const transactionDate = addMonths(baseDate, i);
+            const isInstallment = count > 1;
+            
+            newTransactions.push({
+                id: crypto.randomUUID(),
+                description: isInstallment ? `${description} (${i + 1}/${count})` : description,
+                value: parseFloat(value),
+                type,
+                category,
+                date: format(transactionDate, 'yyyy-MM-dd'),
+                isCompleted: false,
+                installments: count > 1 ? count : undefined,
+                currentInstallment: count > 1 ? i + 1 : undefined
+            });
+        }
+
+        setTransactions(prev => [...newTransactions, ...prev]);
         setDescription("");
         setValue("");
+        setRepeatCount("1");
     };
 
     const deleteTransaction = (id: string) => {
@@ -394,7 +408,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                     setType(newType);
                                     setCategory(categories[newType][0]);
                                 }}
-                                className="w-[100px] bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-3 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all text-slate-950 dark:text-white"
+                                className="w-[100px] bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-2 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all text-slate-950 dark:text-white"
                             >
                                 <option value="expense">Saída</option>
                                 <option value="income">Entrada</option>
@@ -408,6 +422,21 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 lg:col-span-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Repetir</label>
+                        <div className="relative">
+                            <Repeat className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                            <input
+                                type="number"
+                                min="1"
+                                max="60"
+                                value={repeatCount}
+                                onChange={(e) => setRepeatCount(e.target.value)}
+                                className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl pl-8 pr-2 py-3.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white transition-all"
+                            />
                         </div>
                     </div>
 
