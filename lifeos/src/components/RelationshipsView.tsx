@@ -36,7 +36,7 @@ export default function RelationshipsView({ relationships, setRelationships }: R
 
   return (
     <div className="space-y-10 pb-20">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
@@ -44,7 +44,7 @@ export default function RelationshipsView({ relationships, setRelationships }: R
             </div>
             <h2 className="text-3xl font-display font-extrabold tracking-tight">Relacionamentos</h2>
           </div>
-          <p className="text-muted-foreground text-lg ml-11">
+          <p className="text-muted-foreground text-lg sm:ml-11">
             Gerencie sua rede de contatos e lembre-se do que importa.
           </p>
         </div>
@@ -53,7 +53,7 @@ export default function RelationshipsView({ relationships, setRelationships }: R
           <Button
             onClick={() => setIsAdding(true)}
             size="lg"
-            className="rounded-2xl h-12 px-6 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105"
+            className="rounded-2xl h-12 px-8 bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 shrink-0"
           >
             <Plus className="h-5 w-5 mr-2" />
             Adicionar Pessoa
