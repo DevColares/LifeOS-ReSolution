@@ -1,13 +1,14 @@
-import { Habit, Goal } from "@/lib/types";
-import { Flame, Target, CheckCircle2, User } from "lucide-react";
+import { Habit, Goal, Transaction } from "@/lib/types";
+import { Flame, Target, CheckCircle2, User, Wallet } from "lucide-react";
 
 interface DashboardProps {
   habits: Habit[];
   goals: Goal[];
+  transactions: Transaction[];
   userProfile: { name: string; photo: string };
 }
 
-export default function Dashboard({ habits, goals, userProfile }: DashboardProps) {
+export default function Dashboard({ habits, goals, transactions, userProfile }: DashboardProps) {
   const today = new Date().toISOString().split("T")[0];
 
   const activeHabits = habits.length;
@@ -17,7 +18,10 @@ export default function Dashboard({ habits, goals, userProfile }: DashboardProps
 
   const pendingHabits = habits.filter((h) => h.lastCompleted !== today);
 
+  const totalBalance = transactions.reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
+
   const cards = [
+    { label: "Saldo Total", value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalBalance), icon: Wallet, color: "text-primary", bg: "bg-primary/10" },
     { label: "Hábitos Ativos", value: activeHabits, icon: Flame, color: "text-streak", bg: "bg-streak/10" },
     { label: "Metas em Progresso", value: goalsInProgress, icon: Target, color: "text-primary", bg: "bg-primary/10" },
     { label: "Concluídos Hoje", value: habits.length - pendingHabits.length, icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
@@ -44,7 +48,7 @@ export default function Dashboard({ habits, goals, userProfile }: DashboardProps
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card) => (
           <div key={card.label} className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02]">
             <div className={`p-4 rounded-2xl ${card.bg} ${card.color}`}>

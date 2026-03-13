@@ -1,15 +1,16 @@
-import { LayoutDashboard, Target, Flame, Settings, Users, Download } from "lucide-react";
+import { LayoutDashboard, Target, Flame, Settings, Users, Download, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import { useState, useEffect } from "react";
 
-type View = "dashboard" | "habits" | "goals" | "relationships" | "settings";
+type View = "dashboard" | "habits" | "goals" | "relationships" | "settings" | "finance";
 
 const navItems: { id: View; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "Painel", icon: LayoutDashboard },
   { id: "habits", label: "Hábitos", icon: Flame },
   { id: "goals", label: "Metas", icon: Target },
   { id: "relationships", label: "Relacionamentos", icon: Users },
+  { id: "finance", label: "Finanças", icon: Wallet },
   { id: "settings", label: "Configurações", icon: Settings },
 ];
 

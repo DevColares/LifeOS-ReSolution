@@ -34,3 +34,13 @@ export interface Relationship {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Transaction {
+  id: string;
+  description: string;
+  value: number;
+  date: string;
+  category: string;
+  isCompleted: boolean;
+  type: 'income' | 'expense';
+}
