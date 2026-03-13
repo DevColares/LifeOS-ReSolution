@@ -120,8 +120,8 @@ export default function HabitsView({ habits, setHabits, goals }: HabitsViewProps
 
       <div className="glass-card p-6 rounded-[2rem]">
         <div className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="flex-1 flex gap-2 p-1.5 bg-secondary/50 rounded-2xl border border-border/50">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 flex flex-col sm:flex-row p-1.5 bg-secondary/50 rounded-2xl border border-border/50 gap-2">
               <input
                 value={newHabit}
                 onChange={(e) => setNewHabit(e.target.value)}
@@ -141,10 +141,10 @@ export default function HabitsView({ habits, setHabits, goals }: HabitsViewProps
             </div>
             <button
               onClick={addHabit}
-              className="flex items-center gap-2 px-6 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-lg shadow-primary/20"
+              className="flex items-center justify-center gap-2 h-12 px-8 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95"
             >
               <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Adicionar</span>
+              <span>Adicionar</span>
             </button>
           </div>
 

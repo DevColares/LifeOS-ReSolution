@@ -13,14 +13,15 @@ const Index = () => {
   const [habits, setHabits] = useLocalStorage<Habit[]>("lifeos-habits", []);
   const [goals, setGoals] = useLocalStorage<Goal[]>("lifeos-goals", []);
   const [relationships, setRelationships] = useLocalStorage<Relationship[]>("lifeos-relationships", []);
+  const [userProfile, setUserProfile] = useLocalStorage<{ name: string, photo: string }>("lifeos-user-profile", { name: "Usuário", photo: "" });
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden relative">
       <AppSidebar active={view} onNavigate={setView} />
-      <main className="flex-1 p-6 md:p-12 lg:p-16 overflow-auto">
-        <div className="max-w-6xl mx-auto border-none">
+      <main className="flex-1 h-full overflow-y-auto no-scrollbar pb-32 md:pb-8">
+        <div className="max-w-6xl mx-auto p-6 md:p-12 lg:p-16">
           {view === "dashboard" && (
-            <Dashboard habits={habits} goals={goals} />
+            <Dashboard habits={habits} goals={goals} userProfile={userProfile} setUserProfile={setUserProfile} />
           )}
           {view === "habits" && <HabitsView habits={habits} setHabits={setHabits} goals={goals} />}
           {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} habits={habits} />}

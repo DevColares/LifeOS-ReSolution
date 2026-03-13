@@ -1,12 +1,16 @@
 import { Habit, Goal } from "@/lib/types";
-import { Flame, Target, CheckCircle2 } from "lucide-react";
+import { Flame, Target, CheckCircle2, User, Camera, Upload } from "lucide-react";
+import { useRef } from "react";
 
 interface DashboardProps {
   habits: Habit[];
   goals: Goal[];
+  userProfile: { name: string; photo: string };
+  setUserProfile: React.Dispatch<React.SetStateAction<{ name: string; photo: string }>>;
 }
 
-export default function Dashboard({ habits, goals }: DashboardProps) {
+export default function Dashboard({ habits, goals, userProfile, setUserProfile }: DashboardProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split("T")[0];
 
   const activeHabits = habits.length;
@@ -22,11 +26,52 @@ export default function Dashboard({ habits, goals }: DashboardProps) {
     { label: "Concluídos Hoje", value: habits.length - pendingHabits.length, icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
   ];
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserProfile(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Profile Section */}
+      <div className="flex flex-col md:flex-row items-center gap-8 glass-card p-8 rounded-[2.5rem] bg-primary/5 border-primary/10">
+        <div className="relative group">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="w-32 h-32 rounded-[2rem] bg-secondary/50 border-2 border-dashed border-primary/30 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-all shadow-xl shadow-primary/5"
+          >
+            {userProfile.photo ? (
+              <img src={userProfile.photo} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User className="h-12 w-12 text-primary/40 group-hover:text-primary transition-all" />
+            )}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+              <Upload className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" className="hidden" />
+        </div>
+
+        <div className="flex-1 text-center md:text-left space-y-2">
+          <input
+            value={userProfile.name}
+            onChange={(e) => setUserProfile(prev => ({ ...prev, name: e.target.value }))}
+            className="text-4xl font-display font-black tracking-tighter bg-transparent border-none focus:outline-none focus:ring-0 p-0 w-full"
+            placeholder="Seu Nome"
+          />
+          <p className="text-muted-foreground text-lg italic">"A jornada de mil milhas começa com um único passo."</p>
+        </div>
+      </div>
+
       <div>
         <h2 className="text-4xl font-display font-black tracking-tight mb-2">Painel</h2>
-        <p className="text-muted-foreground text-lg">Seu dia organizado em um só lugar.</p>
+        <p className="text-muted-foreground text-lg text-primary/60">Seu dia organizado em um só lugar.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
