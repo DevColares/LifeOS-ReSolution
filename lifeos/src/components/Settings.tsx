@@ -1,11 +1,36 @@
-import { useState } from "react";
-import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera } from "lucide-react";
 import { useDataExport } from "@/hooks/useDataExport";
 
-export default function Settings() {
+import { Habit, Goal } from "@/lib/types";
+import { Flame, Target, CheckCircle2 } from "lucide-react";
+
+interface DashboardProps {
+  userProfile: { name: string; photo: string };
+  setUserProfile: React.Dispatch<React.SetStateAction<{ name: string; photo: string }>>;
+}
+
+interface SettingsProps {
+  userProfile: { name: string; photo: string };
+  setUserProfile: React.Dispatch<React.SetStateAction<{ name: string; photo: string }>>;
+}
+
+export default function Settings({ userProfile, setUserProfile }: SettingsProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [, setImportError] = useState<string | null>(null);
   const { exportData, importData, clearData } = useDataExport();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserProfile(prev => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -49,6 +74,43 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Profile Management */}
+        <div className="glass-card p-8 space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-display font-bold">Seu Perfil</h3>
+            <p className="text-sm text-muted-foreground">Como você aparece no sistema.</p>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-20 h-20 rounded-2xl bg-secondary/50 border-2 border-dashed border-primary/30 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-all"
+              >
+                {userProfile.photo ? (
+                  <img src={userProfile.photo} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="h-8 w-8 text-primary/40 group-hover:text-primary transition-all" />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                  <Camera className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/*" className="hidden" />
+            </div>
+
+            <div className="flex-1 space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Seu Nome</label>
+              <input
+                value={userProfile.name}
+                onChange={(e) => setUserProfile(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-secondary/50 border-none rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                placeholder="Ex: Seu Nome"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="glass-card p-8 space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-display font-bold">Importar & Exportar</h3>
