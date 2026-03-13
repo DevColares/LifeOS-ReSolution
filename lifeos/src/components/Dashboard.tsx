@@ -40,7 +40,7 @@ export default function Dashboard({ habits, goals, userProfile }: DashboardProps
               <User className="h-5 w-5 text-primary" />
             )}
           </div>
-          <span className="text-sm font-bold tracking-tight hidden sm:block">{userProfile.name}</span>
+          <span className="text-xs sm:text-sm font-bold tracking-tight pr-1 sm:pr-0">{userProfile.name}</span>
         </div>
       </div>
 
