@@ -113,7 +113,8 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
     // Filter transactions for the selected month
     const monthlyTransactions = useMemo(() => {
         return transactions.filter(t => {
-            const tDate = new Date(t.date);
+            // Use UTC to avoid timezone shifts that can change the month
+            const tDate = new Date(t.date + 'T12:00:00');
             return tDate.getMonth() === viewingMonth && tDate.getFullYear() === viewingYear;
         });
     }, [transactions, viewingMonth, viewingYear]);
@@ -194,14 +195,14 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="glass-card p-6 flex items-center gap-5">
-                    <div className="p-4 rounded-2xl bg-primary/10 text-primary">
+                    <div className="p-4 rounded-2xl bg-primary/10 text-primary shrink-0">
                         <Wallet className="h-6 w-6" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <p className="text-sm font-medium text-muted-foreground">Saldo Líquido</p>
-                        <p className={cn("text-2xl font-display font-black leading-none mt-1", balance >= 0 ? "text-foreground" : "text-destructive")}>
+                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", balance >= 0 ? "dark:text-white text-slate-900" : "text-destructive")}>
                             {formatCurrency(balance)}
                         </p>
                     </div>
@@ -210,12 +211,12 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                 <Dialog>
                     <DialogTrigger asChild>
                         <button className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02] transition-all text-left">
-                            <div className="p-4 rounded-2xl bg-success/10 text-success">
+                            <div className="p-4 rounded-2xl bg-success/10 text-success shrink-0">
                                 <TrendingUp className="h-6 w-6" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="text-sm font-medium text-muted-foreground">Entradas do Mês</p>
-                                <p className="text-2xl font-display font-black text-success leading-none mt-1">
+                                <p className="text-xl md:text-2xl font-display font-black text-success leading-none mt-1 truncate">
                                     {formatCurrency(totalIncome)}
                                 </p>
                             </div>
@@ -250,12 +251,12 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                 <Dialog>
                     <DialogTrigger asChild>
                         <button className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02] transition-all text-left">
-                            <div className="p-4 rounded-2xl bg-destructive/10 text-destructive">
+                            <div className="p-4 rounded-2xl bg-destructive/10 text-destructive shrink-0">
                                 <TrendingDown className="h-6 w-6" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <p className="text-sm font-medium text-muted-foreground">Saídas do Mês</p>
-                                <p className="text-2xl font-display font-black text-destructive leading-none mt-1">
+                                <p className="text-xl md:text-2xl font-display font-black text-destructive leading-none mt-1 truncate">
                                     {formatCurrency(totalExpense)}
                                 </p>
                             </div>
@@ -292,9 +293,9 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
             <div className="flex justify-end">
                 <Dialog>
                     <DialogTrigger asChild>
-                        <button className="flex items-center gap-2 px-6 py-3 bg-secondary/50 rounded-2xl font-bold hover:bg-secondary transition-all text-sm border border-white/5">
+                        <button className="flex items-center gap-2 px-6 py-3 bg-secondary/80 dark:bg-secondary/50 rounded-2xl font-bold hover:bg-secondary transition-all text-sm border border-slate-200 dark:border-white/5 text-slate-700 dark:text-white">
                             <BarChart3 className="h-5 w-5 text-primary" />
-                            Relatório Geral do Mês
+                            Relatório Geral
                         </button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-white/10">
@@ -361,29 +362,29 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                     <Plus className="h-5 w-5 text-primary" />
                     Novo Lançamento
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="space-y-2 lg:col-span-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
+                    <div className="space-y-2 lg:col-span-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Descrição</label>
                         <input
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Ex: Mercado mensal"
-                            className="w-full bg-secondary/50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                            className="w-full bg-secondary/50 dark:bg-secondary/50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white"
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 lg:col-span-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Valor (R$)</label>
                         <input
                             type="number"
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
                             placeholder="0,00"
-                            className="w-full bg-secondary/50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                            className="w-full bg-secondary/50 dark:bg-secondary/50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white"
                         />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 lg:col-span-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Data</label>
                         <div className="relative">
                             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -391,12 +392,12 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-secondary/50 border-none rounded-xl pl-11 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none"
+                                className="w-full bg-secondary/50 dark:bg-secondary/50 border-none rounded-xl pl-11 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none text-slate-800 dark:text-white"
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-2 lg:col-span-1">
+                    <div className="space-y-2 lg:col-span-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Categoria</label>
                         <div className="flex gap-2">
                             <select
@@ -404,9 +405,9 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                 onChange={(e) => {
                                     const newType = e.target.value as 'income' | 'expense';
                                     setType(newType);
-                                    setCategory(defaultCategories[newType][0]);
+                                    setCategory(categories[newType][0]);
                                 }}
-                                className="bg-secondary/50 px-3 py-3 rounded-xl text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none"
+                                className="bg-secondary/50 dark:bg-secondary/50 px-3 py-3 rounded-xl text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-800 dark:text-white"
                             >
                                 <option value="expense">Saída</option>
                                 <option value="income">Entrada</option>
@@ -414,7 +415,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                             <select
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
-                                className="flex-1 bg-secondary/50 px-4 py-3 rounded-xl text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none"
+                                className="flex-1 bg-secondary/50 dark:bg-secondary/50 px-4 py-3 rounded-xl text-xs font-bold border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-800 dark:text-white"
                             >
                                 {categories[type].map((cat: string) => (
                                     <option key={cat} value={cat}>{cat}</option>
@@ -422,28 +423,28 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                             </select>
                             <button
                                 onClick={() => setShowAddCat(!showAddCat)}
-                                className="p-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-all"
+                                className="p-3 rounded-xl bg-secondary/50 dark:bg-secondary/80 hover:bg-secondary transition-all"
                             >
                                 <Plus className="h-4 w-4" />
                             </button>
                         </div>
                         {showAddCat && (
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex gap-2 mt-2 animate-in slide-in-from-top-2">
                                 <input
                                     value={newCatName}
                                     onChange={(e) => setNewCatName(e.target.value)}
                                     placeholder="Nova categoria..."
-                                    className="flex-1 bg-secondary/50 border-none rounded-xl px-3 py-2 text-xs font-bold"
+                                    className="flex-1 bg-secondary/80 dark:bg-secondary/50 border-none rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
                                 />
                                 <button onClick={addCategory} className="px-3 py-2 bg-primary text-white rounded-xl text-xs font-bold shrink-0">Add</button>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex items-end">
+                    <div className="flex items-end lg:col-span-2">
                         <button
                             onClick={addTransaction}
-                            className="w-full h-[48px] rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            className="w-full h-[48px] rounded-xl bg-primary text-white font-bold hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                         >
                             <Plus className="h-5 w-5" />
                             <span>Adicionar</span>
@@ -503,10 +504,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t.category}</span>
                                             <span className="text-muted-foreground/30">•</span>
-                                            <span className="text-[10px] font-medium text-muted-foreground italic">{new Date(t.date).toLocaleDateString('pt-BR')}</span>
-                                            {!t.isCompleted && (
-                                                <span className="ml-2 py-0.5 px-1.5 bg-warning/10 text-warning text-[8px] font-black uppercase rounded">Pendente</span>
-                                            )}
+                                            <span className="text-[10px] font-medium text-muted-foreground italic">{new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                                         </div>
                                     </div>
                                 </div>
