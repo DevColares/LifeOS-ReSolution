@@ -38,28 +38,34 @@ export function useDataExport() {
         try {
           const data = JSON.parse(e.target?.result as string);
           
-          if (data.habits && Array.isArray(data.habits)) {
-            localStorage.setItem("lifeos-habits", JSON.stringify(data.habits));
-          }
+          // Helper to find data by multiple possible keys
+          const findData = (keys: string[]) => {
+            for (const key of keys) {
+              if (data[key] && Array.isArray(data[key])) return data[key];
+            }
+            return null;
+          };
+
+          const habits = findData(["habits", "habitos", "tasks", "tarefas"]);
+          if (habits) localStorage.setItem("lifeos-habits", JSON.stringify(habits));
           
-          if (data.goals && Array.isArray(data.goals)) {
-            localStorage.setItem("lifeos-goals", JSON.stringify(data.goals));
-          }
+          const goals = findData(["goals", "metas", "objetivos"]);
+          if (goals) localStorage.setItem("lifeos-goals", JSON.stringify(goals));
           
-          if (data.relationships && Array.isArray(data.relationships)) {
-            localStorage.setItem("lifeos-relationships", JSON.stringify(data.relationships));
+          const relationships = findData(["relationships", "relacionamentos", "contacts", "pessoas"]);
+          if (relationships) localStorage.setItem("lifeos-relationships", JSON.stringify(relationships));
+
+          const finance = findData(["finance", "financeiro", "transactions", "transacoes", "lancamentos"]);
+          if (finance) localStorage.setItem("lifeos-finance", JSON.stringify(finance));
+
+          const userProfile = data.userProfile || data.perfil || data.user;
+          if (userProfile && typeof userProfile === 'object') {
+            localStorage.setItem("lifeos-user-profile", JSON.stringify(userProfile));
           }
 
-          if (data.finance && Array.isArray(data.finance)) {
-            localStorage.setItem("lifeos-finance", JSON.stringify(data.finance));
-          }
-
-          if (data.userProfile && typeof data.userProfile === 'object') {
-            localStorage.setItem("lifeos-user-profile", JSON.stringify(data.userProfile));
-          }
-
-          if (data.categories && typeof data.categories === 'object') {
-            localStorage.setItem("lifeos-finance-categories", JSON.stringify(data.categories));
+          const categories = data.categories || data.categorias;
+          if (categories && typeof categories === 'object') {
+            localStorage.setItem("lifeos-finance-categories", JSON.stringify(categories));
           }
           
           resolve();
