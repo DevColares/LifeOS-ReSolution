@@ -1,31 +1,51 @@
-import { Habit } from "@/lib/types";
-import { Flame, Check, Plus, Filter, Calendar } from "lucide-react";
-import { useState } from "react";
+import { Habit, Goal } from "@/lib/types";
+import { Flame, Check, Plus, Trash2, Tag } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface HabitsViewProps {
   habits: Habit[];
   setHabits: React.Dispatch<React.SetStateAction<Habit[]>>;
+  goals: Goal[];
 }
 
-export default function HabitsView({ habits, setHabits }: HabitsViewProps) {
+const defaultCategories = ["Saúde", "Produtividade", "Aprendizado", "Pessoal", "Financeiro"];
+
+export default function HabitsView({ habits, setHabits, goals }: HabitsViewProps) {
   const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
   const [newHabit, setNewHabit] = useState("");
-  const [newCategory, setNewCategory] = useState<"Health" | "Productivity" | "Learning" | "Personal" | "Finance">("Health");
-  const [viewMode, setViewMode] = useState<"grid" | "daily">("grid");
+  const [categories, setCategories] = useLocalStorage<string[]>("lifeos-habit-categories", defaultCategories, defaultCategories);
+  const [newCategory, setNewCategory] = useState(categories[0]);
+  const [selectedGoalId, setSelectedGoalId] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  // Streak reset logic
+  useEffect(() => {
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (!h.lastCompleted) return h;
+        // If last completed is before yesterday, reset streak
+        if (h.lastCompleted < yesterdayStr && h.lastCompleted !== today) {
+          return { ...h, streak: 0 };
+        }
+        return h;
+      })
+    );
+  }, []);
 
   const completeHabit = (id: string) => {
     setHabits((prev) =>
       prev.map((h) => {
         if (h.id !== id) return h;
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yStr = yesterday.toISOString().split("T")[0];
-        const streakContinues = h.lastCompleted === yStr || h.lastCompleted === today;
+        const streakContinues = h.lastCompleted === yesterdayStr || h.lastCompleted === today;
         return {
           ...h,
           lastCompleted: today,
-          streak: streakContinues ? h.streak + 1 : 1,
+          streak: streakContinues ? (h.lastCompleted === today ? h.streak : h.streak + 1) : 1,
         };
       })
     );
@@ -35,254 +55,191 @@ export default function HabitsView({ habits, setHabits }: HabitsViewProps) {
     if (!newHabit.trim()) return;
     setHabits((prev) => [
       ...prev,
-      { 
-        id: crypto.randomUUID(), 
-        name: newHabit.trim(), 
+      {
+        id: crypto.randomUUID(),
+        name: newHabit.trim(),
         category: newCategory,
-        streak: 0, 
-        lastCompleted: null 
+        streak: 0,
+        lastCompleted: null,
+        goalId: selectedGoalId || undefined
       },
     ]);
     setNewHabit("");
+    setSelectedGoalId("");
   };
 
-  const getCategories = () => {
-    const categories = habits.map(h => h.category);
-    return Array.from(new Set(categories));
+  const deleteHabit = (id: string) => {
+    if (confirm("Deseja realmente excluir este hábito?")) {
+      setHabits(prev => prev.filter(h => h.id !== id));
+    }
   };
 
-  const getDailyHabits = () => {
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const todayIndex = new Date().getDay();
-    
-    return days.map((day, index) => {
-      const dayHabits = habits.filter(h => {
-        // Simple algorithm to distribute habits across days
-        const habitIndex = h.id.charCodeAt(0) % 7;
-        return habitIndex === index;
-      });
-      
-      return {
-        day,
-        habits: dayHabits,
-        isToday: index === todayIndex
-      };
-    });
-  };
-
-  const filteredHabits = selectedCategory === "All" 
-    ? habits 
+  const filteredHabits = selectedCategory === "All"
+    ? habits
     : habits.filter(h => h.category === selectedCategory);
 
-  const dailyHabits = getDailyHabits();
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold mb-1">Hábitos</h2>
-          <p className="text-muted-foreground text-sm">Construa consistência, um dia de cada vez.</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex gap-1 bg-secondary rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                viewMode === "grid" 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Visualização Grade
-            </button>
-            <button
-              onClick={() => setViewMode("daily")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                viewMode === "daily" 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Visualização Diária
-            </button>
+    <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+      <div className="flex items-center justify-between flex-wrap gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-streak/10 rounded-xl">
+              <Flame className="h-6 w-6 text-streak" />
+            </div>
+            <h2 className="text-3xl font-display font-black tracking-tight">Hábitos</h2>
           </div>
+          <p className="text-muted-foreground text-lg ml-11">Consistência é a chave para a transformação.</p>
         </div>
       </div>
 
-      {viewMode === "grid" && (
-        <>
-          {/* Filtro de Categorias */}
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setSelectedCategory("All")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                selectedCategory === "All"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
+      <div className="flex flex-col gap-6">
+        <div className="glass-card p-2 px-3 flex items-center sm:justify-center gap-2 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory("All")}
+            className={`whitespace-nowrap px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 ${selectedCategory === "All"
+              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+              : "hover:bg-secondary text-muted-foreground hover:text-foreground"
               }`}
-            >
-              Todas as Categorias
-            </button>
-            {getCategories().map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  selectedCategory === category
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-foreground hover:bg-secondary/80"
+          >
+            Todos
+          </button>
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`whitespace-nowrap px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 ${selectedCategory === category
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                : "hover:bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
-              >
-                {category === "Health" ? "Saúde" : 
-                 category === "Productivity" ? "Produtividade" : 
-                 category === "Learning" ? "Aprendizado" : 
-                 category === "Personal" ? "Pessoal" : "Financeiro"}
-              </button>
-            ))}
-          </div>
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* Formulário de Adicionar Hábito */}
-          <div className="glass-card p-6 rounded-2xl">
-            <h3 className="font-semibold mb-3">Adicionar Novo Hábito</h3>
-            <div className="flex gap-2 flex-wrap">
+      <div className="glass-card p-6 rounded-[2rem]">
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            <div className="flex-1 flex gap-2 p-1.5 bg-secondary/50 rounded-2xl border border-border/50">
               <input
                 value={newHabit}
                 onChange={(e) => setNewHabit(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addHabit()}
-                placeholder="Novo hábito..."
-                className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Ex: Meditar por 10 minutos..."
+                className="flex-1 bg-transparent px-4 py-2 text-sm focus:outline-none"
               />
               <select
                 value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value as any)}
-                className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                onChange={(e) => setNewCategory(e.target.value)}
+                className="bg-background/80 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border-none focus:ring-2 focus:ring-primary/20 min-w-[140px] appearance-none cursor-pointer hover:bg-background transition-colors"
               >
-                <option value="Health">Saúde</option>
-                <option value="Productivity">Produtividade</option>
-                <option value="Learning">Aprendizado</option>
-                <option value="Personal">Pessoal</option>
-                <option value="Finance">Financeiro</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
-              <button onClick={addHabit} className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                <Plus className="h-4 w-4" />
-              </button>
             </div>
+            <button
+              onClick={addHabit}
+              className="flex items-center gap-2 px-6 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-lg shadow-primary/20"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="hidden sm:inline">Adicionar</span>
+            </button>
           </div>
 
-          {/* Habits Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredHabits.map((habit) => {
-              const doneToday = habit.lastCompleted === today;
-              const categoryColors = {
-                Health: "bg-green-500/20 text-green-600",
-                Productivity: "bg-blue-500/20 text-blue-600",
-                Learning: "bg-purple-500/20 text-purple-600",
-                Personal: "bg-pink-500/20 text-pink-600",
-                Finance: "bg-yellow-500/20 text-yellow-600",
-              };
+          <div className="flex items-center gap-3 px-2">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Vincular à Meta:</span>
+            <select
+              value={selectedGoalId}
+              onChange={(e) => setSelectedGoalId(e.target.value)}
+              className="bg-secondary/50 px-4 py-2 rounded-xl text-xs font-bold border border-border/50 focus:ring-2 focus:ring-primary/20 cursor-pointer hover:bg-secondary transition-colors appearance-none min-w-[160px]"
+            >
+              <option value="">Nenhuma meta associada</option>
+              {goals.map(goal => (
+                <option key={goal.id} value={goal.id}>{goal.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
 
-              return (
-                <div key={habit.id} className="glass-card p-5 space-y-4 hover:border-primary/30 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{habit.name}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[habit.category]}`}>
-                        {habit.category}
-                      </span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredHabits.map((habit) => {
+          const doneToday = habit.lastCompleted === today;
+          const parentGoal = goals.find(g => g.id === habit.goalId);
+          const isHighStreak = habit.streak >= 5;
+
+          return (
+            <div key={habit.id} className="glass-card group overflow-hidden relative">
+              <div className="p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-3 flex-1 min-w-0">
+                    <div className="flex flex-col items-start gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">{habit.category}</span>
+                      {parentGoal && (
+                        <span
+                          className="truncate max-w-full text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20"
+                          title={parentGoal.name}
+                        >
+                          {parentGoal.name}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1 text-streak">
-                      <Flame className="h-4 w-4" />
-                      <span className="text-sm font-bold">{habit.streak}</span>
+                    <div>
+                      <h3 className="text-xl font-display font-bold leading-tight break-words">{habit.name}</h3>
+                      <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">
+                        {habit.streak >= 21
+                          ? "✨ Hábito Consolidado"
+                          : `Faltam ${21 - habit.streak} dias para consolidar`}
+                      </p>
                     </div>
                   </div>
+                  <div className="flex flex-col items-end shrink-0 pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <Flame className={`h-5 w-5 fill-current ${isHighStreak ? "streak-blue" : "text-streak"}`} />
+                      <span className={`text-xl font-black font-display ${isHighStreak ? "text-blue-500" : "text-streak"}`}>{habit.streak}</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground/40">Dias</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => !doneToday && completeHabit(habit.id)}
                     disabled={doneToday}
-                    className={`w-full py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                      doneToday
-                        ? "bg-success/20 text-success cursor-default"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90"
-                    }`}
+                    className={`flex-1 py-4 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-3 ${doneToday
+                      ? "bg-success/10 text-success cursor-default"
+                      : "bg-secondary hover:bg-primary hover:text-primary-foreground group-hover:shadow-xl group-hover:shadow-primary/10"
+                      }`}
                   >
-                    <Check className="h-4 w-4" />
-                    {doneToday ? "Concluído Hoje" : "Concluir Hoje"}
+                    {doneToday ? (
+                      <>
+                        <Check className="h-5 w-5 stroke-[3px]" />
+                        Concluído
+                      </>
+                    ) : (
+                      "Marcar feito"
+                    )}
+                  </button>
+                  <button
+                    onClick={() => deleteHabit(habit.id)}
+                    className="p-4 rounded-2xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all"
+                    title="Excluir hábito"
+                  >
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {viewMode === "daily" && (
-        <div className="space-y-4">
-          {dailyHabits.map((dayData) => (
-            <div key={dayData.day} className={`glass-card p-6 ${dayData.isToday ? "border-primary/50 ring-1 ring-primary/20" : ""}`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className={`h-5 w-5 ${dayData.isToday ? "text-primary" : "text-muted-foreground"}`} />
-                  <h3 className={`text-lg font-semibold ${dayData.isToday ? "text-primary" : ""}`}>
-                    {dayData.day} {dayData.isToday && "(Today)"}
-                  </h3>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {dayData.habits.length} hábitos
-                </span>
               </div>
-              
-              {dayData.habits.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">
-                  Nenhum hábito atribuído para este dia
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {dayData.habits.map((habit) => {
-                    const doneToday = habit.lastCompleted === today;
-                    const categoryColors = {
-                      Health: "bg-green-500/20 text-green-600",
-                      Productivity: "bg-blue-500/20 text-blue-600",
-                      Learning: "bg-purple-500/20 text-purple-600",
-                      Personal: "bg-pink-500/20 text-pink-600",
-                      Finance: "bg-yellow-500/20 text-yellow-600",
-                    };
-
-                    return (
-                      <div key={habit.id} className="p-3 rounded-lg border border-border/50 hover:bg-secondary/50 transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <h4 className="font-medium text-sm">{habit.name}</h4>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoryColors[habit.category]}`}>
-                              {habit.category === "Health" ? "Saúde" : 
-                               habit.category === "Productivity" ? "Produtividade" : 
-                               habit.category === "Learning" ? "Aprendizado" : 
-                               habit.category === "Personal" ? "Pessoal" : "Financeiro"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-streak">
-                            <Flame className="h-3 w-3" />
-                            <span className="text-xs font-bold">{habit.streak}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => !doneToday && completeHabit(habit.id)}
-                          disabled={doneToday}
-                          className={`w-full py-1.5 rounded text-xs font-medium transition-all ${
-                            doneToday
-                              ? "bg-success/20 text-success cursor-default"
-                              : "bg-primary/10 text-primary hover:bg-primary/20"
-                          }`}
-                        >
-                          {doneToday ? "Concluído" : "Concluir"}
-                        </button>
-                      </div>
-                    );
-                  })}
+              {!doneToday && (
+                <div className="h-1 bg-secondary w-full">
+                  <div className="h-full bg-primary/20 w-0 group-hover:w-full transition-all duration-[2000ms]" />
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

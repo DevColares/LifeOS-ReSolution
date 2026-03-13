@@ -1,9 +1,10 @@
 export interface Habit {
   id: string;
   name: string;
-  category: "Health" | "Productivity" | "Learning" | "Personal" | "Finance";
+  category: string;
   streak: number;
   lastCompleted: string | null; // ISO date string
+  goalId?: string;
 }
 
 export interface Subtask {

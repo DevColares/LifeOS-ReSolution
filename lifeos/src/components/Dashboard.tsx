@@ -17,47 +17,62 @@ export default function Dashboard({ habits, goals }: DashboardProps) {
   const pendingHabits = habits.filter((h) => h.lastCompleted !== today);
 
   const cards = [
-    { label: "Hábitos Ativos", value: activeHabits, icon: Flame, color: "text-streak" },
-    { label: "Metas em Progresso", value: goalsInProgress, icon: Target, color: "text-primary" },
+    { label: "Hábitos Ativos", value: activeHabits, icon: Flame, color: "text-streak", bg: "bg-streak/10" },
+    { label: "Metas em Progresso", value: goalsInProgress, icon: Target, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Concluídos Hoje", value: habits.length - pendingHabits.length, icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <h2 className="text-2xl font-bold mb-1">Painel</h2>
-        <p className="text-muted-foreground text-sm">Seu sistema operacional pessoal em um relance.</p>
+        <h2 className="text-4xl font-display font-black tracking-tight mb-2">Painel</h2>
+        <p className="text-muted-foreground text-lg">Seu dia organizado em um só lugar.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {cards.map((card) => (
-          <div key={card.label} className="glass-card p-5 flex items-center gap-4 hover:border-primary/30 transition-colors rounded-2xl">
-            <div className={`p-3 rounded-lg bg-secondary ${card.color}`}>
-              <card.icon className="h-5 w-5" />
+          <div key={card.label} className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02]">
+            <div className={`p-4 rounded-2xl ${card.bg} ${card.color}`}>
+              <card.icon className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{card.value}</p>
-              <p className="text-xs text-muted-foreground">{card.label}</p>
+              <p className="text-3xl font-display font-bold leading-none">{card.value}</p>
+              <p className="text-sm font-medium text-muted-foreground mt-1">{card.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="glass-card p-6 rounded-2xl">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-          Hábitos Pendentes de Hoje
-        </h3>
+      <div className="glass-card p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-display font-bold flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            Hábitos de Hoje
+          </h3>
+          <span className="text-xs font-bold tracking-widest uppercase px-3 py-1 bg-secondary rounded-full text-muted-foreground">
+            {habits.length - pendingHabits.length} / {habits.length}
+          </span>
+        </div>
+
         {pendingHabits.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Todos os hábitos concluídos hoje! 🎉</p>
+          <div className="py-12 text-center space-y-3">
+            <div className="text-4xl">🎉</div>
+            <p className="text-lg font-medium text-foreground">Incrível! Todos os hábitos concluídos.</p>
+            <p className="text-sm text-muted-foreground">Você está no caminho certo para o sucesso.</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {pendingHabits.map((h) => (
-              <div key={h.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/50">
-                <div className="h-2 w-2 rounded-full bg-warning" />
-                <span className="text-sm">{h.name}</span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {h.streak} dias consecutivos
-                </span>
+              <div key={h.id} className="group flex items-center gap-4 py-4 px-5 rounded-2xl bg-secondary/30 hover:bg-secondary/50 transition-all cursor-pointer">
+                <div className="h-3 w-3 rounded-full bg-warning shadow-sm shadow-warning/20 group-hover:scale-125 transition-transform" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold">{h.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{h.category}</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs font-black text-streak">{h.streak}d</span>
+                  <span className="text-[10px] text-muted-foreground/50 uppercase">Streak</span>
+                </div>
               </div>
             ))}
           </div>
@@ -66,3 +81,4 @@ export default function Dashboard({ habits, goals }: DashboardProps) {
     </div>
   );
 }
+

@@ -16,15 +16,15 @@ const Index = () => {
   const [relationships, setRelationships] = useLocalStorage<Relationship[]>("lifeos-relationships", [], mockRelationships);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       <AppSidebar active={view} onNavigate={setView} />
-      <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
-        <div className="max-w-5xl mx-auto">
+      <main className="flex-1 p-6 md:p-12 lg:p-16 overflow-auto">
+        <div className="max-w-6xl mx-auto border-none">
           {view === "dashboard" && (
             <Dashboard habits={habits} goals={goals} />
           )}
-          {view === "habits" && <HabitsView habits={habits} setHabits={setHabits} />}
-          {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} />}
+          {view === "habits" && <HabitsView habits={habits} setHabits={setHabits} goals={goals} />}
+          {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} habits={habits} />}
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
           {view === "settings" && <Settings />}
         </div>
