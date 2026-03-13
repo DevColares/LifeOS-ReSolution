@@ -32,7 +32,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
             type,
             category,
             date,
-            isCompleted: true
+            isCompleted: false
         };
 
         setTransactions(prev => [newTransaction, ...prev]);
@@ -46,16 +46,21 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
         }
     };
 
+    const toggleComplete = (id: string) => {
+        setTransactions(prev => prev.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
+    };
+
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     };
 
+    // Only sum completed transactions for the top cards
     const totalIncome = transactions
-        .filter(t => t.type === 'income')
+        .filter(t => t.type === 'income' && t.isCompleted)
         .reduce((acc, t) => acc + t.value, 0);
 
     const totalExpense = transactions
-        .filter(t => t.type === 'expense')
+        .filter(t => t.type === 'expense' && t.isCompleted)
         .reduce((acc, t) => acc + t.value, 0);
 
     const balance = totalIncome - totalExpense;
@@ -214,21 +219,32 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                     ) : (
                         filteredTransactions.map((t) => (
                             <div key={t.id} className="glass-card p-4 px-6 flex items-center justify-between group hover:scale-[1.01] transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className={cn("p-3 rounded-2xl", t.type === 'income' ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive")}>
-                                        {t.type === 'income' ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-sm sm:text-base">{t.description}</p>
+                                <div className="flex items-center gap-4 min-w-0">
+                                    <button
+                                        onClick={() => toggleComplete(t.id)}
+                                        className={cn(
+                                            "p-3 rounded-2xl transition-all shrink-0",
+                                            t.isCompleted
+                                                ? (t.type === 'income' ? "bg-success/20 text-success shadow-lg shadow-success/10" : "bg-destructive/20 text-destructive shadow-lg shadow-destructive/10")
+                                                : "bg-secondary text-muted-foreground/30 hover:bg-secondary/80"
+                                        )}
+                                    >
+                                        {t.isCompleted ? <Check className="h-5 w-5 stroke-[3px]" /> : <DollarSign className="h-5 w-5" />}
+                                    </button>
+                                    <div className="min-w-0">
+                                        <p className={cn("font-bold text-sm sm:text-base truncate", !t.isCompleted && "text-muted-foreground/60")}>{t.description}</p>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t.category}</span>
                                             <span className="text-muted-foreground/30">•</span>
                                             <span className="text-[10px] font-medium text-muted-foreground italic">{new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                                            {!t.isCompleted && (
+                                                <span className="ml-2 py-0.5 px-1.5 bg-warning/10 text-warning text-[8px] font-black uppercase rounded">Pendente</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
-                                    <p className={cn("font-display font-black text-lg", t.type === 'income' ? "text-success" : "text-destructive")}>
+                                <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+                                    <p className={cn("font-display font-black text-base sm:text-lg", t.isCompleted ? (t.type === 'income' ? "text-success" : "text-destructive") : "text-muted-foreground/40")}>
                                         {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
                                     </p>
                                     <button

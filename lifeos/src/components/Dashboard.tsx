@@ -18,7 +18,9 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
   const pendingHabits = habits.filter((h) => h.lastCompleted !== today);
 
-  const totalBalance = transactions.reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
+  const totalBalance = transactions
+    .filter(t => t.isCompleted)
+    .reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
 
   const cards = [
     { label: "Saldo Total", value: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalBalance), icon: Wallet, color: "text-primary", bg: "bg-primary/10" },
@@ -50,13 +52,13 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card) => (
-          <div key={card.label} className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02]">
-            <div className={`p-4 rounded-2xl ${card.bg} ${card.color}`}>
+          <div key={card.label} className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02] transition-transform min-h-[100px]">
+            <div className={`p-4 rounded-2xl shrink-0 ${card.bg} ${card.color}`}>
               <card.icon className="h-6 w-6" />
             </div>
-            <div>
-              <p className="text-3xl font-display font-bold leading-none">{card.value}</p>
-              <p className="text-sm font-medium text-muted-foreground mt-1">{card.label}</p>
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl lg:text-3xl font-display font-black leading-none truncate">{card.value}</p>
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mt-1 uppercase tracking-wider">{card.label}</p>
             </div>
           </div>
         ))}
