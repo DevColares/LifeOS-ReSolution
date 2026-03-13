@@ -34,13 +34,13 @@ export default function RelationshipCard({ relationship, onEdit, onDelete }: Rel
                             <User className="h-8 w-8 text-primary" />
                         </div>
                     )}
-                    <div>
-                        <CardTitle className="text-xl font-display font-bold">{relationship.name}</CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs font-medium px-2 py-0.5 bg-secondary rounded-full text-secondary-foreground">
+                    <div className="min-w-0">
+                        <CardTitle className="text-xl font-display font-bold break-words">{relationship.name}</CardTitle>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-xs font-medium px-2 py-0.5 bg-secondary rounded-full text-secondary-foreground whitespace-nowrap">
                                 {relationship.age} anos
                             </span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
                                 {formatDate(relationship.birthday)}
                             </span>
                         </div>
