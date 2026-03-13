@@ -7,13 +7,12 @@ import RelationshipsView from "@/components/RelationshipsView";
 import Settings from "@/components/Settings";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Habit, Goal, Relationship } from "@/lib/types";
-import { mockHabits, mockGoals, mockRelationships } from "@/lib/mockData";
 
 const Index = () => {
   const [view, setView] = useState<View>("dashboard");
-  const [habits, setHabits] = useLocalStorage<Habit[]>("lifeos-habits", [], mockHabits);
-  const [goals, setGoals] = useLocalStorage<Goal[]>("lifeos-goals", [], mockGoals);
-  const [relationships, setRelationships] = useLocalStorage<Relationship[]>("lifeos-relationships", [], mockRelationships);
+  const [habits, setHabits] = useLocalStorage<Habit[]>("lifeos-habits", []);
+  const [goals, setGoals] = useLocalStorage<Goal[]>("lifeos-goals", []);
+  const [relationships, setRelationships] = useLocalStorage<Relationship[]>("lifeos-relationships", []);
 
   return (
     <div className="flex min-h-screen bg-background">
