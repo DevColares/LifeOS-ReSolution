@@ -1,7 +1,14 @@
 import { useState, useRef } from "react";
-import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X } from "lucide-react";
+import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useDataExport } from "@/hooks/useDataExport";
 import { useTheme } from "@/hooks/useTheme";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+
+const defaultCategories = {
+  income: ["Salário", "Investimento", "Venda", "Presente", "Outros"],
+  expense: ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Outros"]
+};
 
 interface SettingsProps {
   userProfile: { name: string; photo: string };
@@ -14,6 +21,26 @@ export default function Settings({ userProfile, setUserProfile }: SettingsProps)
   const { exportData, importData, clearData } = useDataExport();
   const { isDark, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [categories, setCategories] = useLocalStorage("lifeos-finance-categories", defaultCategories);
+  const [newCatName, setNewCatName] = useState("");
+  const [activeTab, setActiveTab] = useState<'income' | 'expense'>('expense');
+
+  const addCategory = () => {
+    if (!newCatName.trim()) return;
+    setCategories((prev: any) => ({
+      ...prev,
+      [activeTab]: [...prev[activeTab], newCatName.trim()]
+    }));
+    setNewCatName("");
+  };
+
+  const removeCategory = (type: 'income' | 'expense', name: string) => {
+    setCategories((prev: any) => ({
+      ...prev,
+      [type]: prev[type].filter((cat: string) => cat !== name)
+    }));
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -205,6 +232,69 @@ export default function Settings({ userProfile, setUserProfile }: SettingsProps)
             <Trash2 className="h-5 w-5" />
             Limpar Todo o Sistema
           </button>
+        </div>
+
+        {/* Finance Categories Management */}
+        <div className="glass-card p-8 space-y-6 md:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-xl font-display font-bold">Categorias do Financeiro</h3>
+              <p className="text-sm text-muted-foreground">Personalize as categorias de suas entradas e saídas.</p>
+            </div>
+            <div className="flex bg-secondary/50 p-1 rounded-xl self-start">
+              <button
+                onClick={() => setActiveTab('expense')}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                  activeTab === 'expense' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Saídas
+              </button>
+              <button
+                onClick={() => setActiveTab('income')}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                  activeTab === 'income' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Entradas
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder={`Nova categoria de ${activeTab === 'income' ? 'entrada' : 'saída'}...`}
+              className="flex-1 bg-secondary/50 border-none rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white"
+            />
+            <button
+              onClick={addCategory}
+              className="px-6 rounded-2xl bg-primary text-white font-bold hover:scale-[1.02] transition-all flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {categories[activeTab].map((cat: string) => (
+              <div
+                key={cat}
+                className="group flex items-center justify-between bg-secondary/30 hover:bg-secondary/50 border border-slate-100 dark:border-white/5 rounded-xl px-4 py-3 transition-all"
+              >
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{cat}</span>
+                <button
+                  onClick={() => removeCategory(activeTab, cat)}
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-all"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

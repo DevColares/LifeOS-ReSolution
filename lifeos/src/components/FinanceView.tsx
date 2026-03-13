@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Transaction } from "@/lib/types";
 import {
     Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar,
-    Tag, DollarSign, Check, X, ChevronLeft, ChevronRight, BarChart3, PieChart as PieChartIcon
+    DollarSign, Check, ChevronLeft, ChevronRight, BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
+    PieChart, Pie, Cell
 } from 'recharts';
 
 interface FinanceViewProps {
@@ -29,10 +29,6 @@ const defaultCategories = {
 };
 
 export default function FinanceView({ transactions, setTransactions }: FinanceViewProps) {
-    const [categories, setCategories] = useLocalStorage("lifeos-finance-categories", defaultCategories);
-    const [newCatName, setNewCatName] = useState("");
-    const [showAddCat, setShowAddCat] = useState(false);
-
     const [description, setDescription] = useState("");
     const [value, setValue] = useState("");
     const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -40,16 +36,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
 
-    const addCategory = () => {
-        if (!newCatName) return;
-        setCategories((prev: any) => ({
-            ...prev,
-            [type]: [...prev[type as keyof typeof prev], newCatName]
-        }));
-        setCategory(newCatName);
-        setNewCatName("");
-        setShowAddCat(false);
-    };
+    const [categories] = useLocalStorage("lifeos-finance-categories", defaultCategories);
 
     // Month selection state
     const [viewingMonth, setViewingMonth] = useState(new Date().getMonth());
@@ -176,19 +163,19 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                         <div className="p-2 bg-primary/10 rounded-xl">
                             <Wallet className="h-6 w-6 text-primary" />
                         </div>
-                        <h2 className="text-3xl font-display font-black tracking-tight">Finanças</h2>
+                        <h2 className="text-3xl font-display font-black tracking-tight text-slate-950 dark:text-white">Finanças</h2>
                     </div>
-                    <p className="text-muted-foreground text-lg ml-11">Gerencie seu dinheiro com inteligência e clareza.</p>
+                    <p className="text-slate-600 dark:text-muted-foreground text-lg ml-11">Gerencie seu dinheiro com inteligência e clareza.</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-secondary/30 p-2 px-4 rounded-2xl border border-white/10 self-start sm:self-center">
-                    <button onClick={handlePrevMonth} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                <div className="flex items-center gap-4 bg-secondary/30 p-2 px-4 rounded-2xl border border-slate-200 dark:border-white/10 self-start sm:self-center">
+                    <button onClick={handlePrevMonth} className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-950 dark:text-white">
                         <ChevronLeft className="h-5 w-5" />
                     </button>
-                    <span className="font-display font-bold text-sm min-w-[120px] text-center">
+                    <span className="font-display font-bold text-sm min-w-[120px] text-center text-slate-950 dark:text-white">
                         {monthNames[viewingMonth]} {viewingYear}
                     </span>
-                    <button onClick={handleNextMonth} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                    <button onClick={handleNextMonth} className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-950 dark:text-white">
                         <ChevronRight className="h-5 w-5" />
                     </button>
                 </div>
@@ -201,8 +188,8 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                         <Wallet className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                        <p className="text-sm font-medium text-muted-foreground">Saldo Líquido</p>
-                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", balance >= 0 ? "dark:text-white text-slate-900" : "text-destructive")}>
+                        <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Saldo Líquido</p>
+                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", balance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
                             {formatCurrency(balance)}
                         </p>
                     </div>
@@ -215,7 +202,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                 <TrendingUp className="h-6 w-6" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground">Entradas do Mês</p>
+                                <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Entradas do Mês</p>
                                 <p className="text-xl md:text-2xl font-display font-black text-success leading-none mt-1 truncate">
                                     {formatCurrency(totalIncome)}
                                 </p>
@@ -255,7 +242,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                 <TrendingDown className="h-6 w-6" />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground">Saídas do Mês</p>
+                                <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Saídas do Mês</p>
                                 <p className="text-xl md:text-2xl font-display font-black text-destructive leading-none mt-1 truncate">
                                     {formatCurrency(totalExpense)}
                                 </p>
@@ -293,35 +280,35 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
             <div className="flex justify-end">
                 <Dialog>
                     <DialogTrigger asChild>
-                        <button className="flex items-center gap-2 px-6 py-3 bg-secondary/80 dark:bg-secondary/50 rounded-2xl font-bold hover:bg-secondary transition-all text-sm border border-slate-200 dark:border-white/5 text-slate-700 dark:text-white">
+                        <button className="flex items-center gap-2 px-6 py-3 bg-secondary/80 dark:bg-secondary/50 rounded-2xl font-bold hover:bg-secondary transition-all text-sm border border-slate-200 dark:border-white/5 text-slate-950 dark:text-white">
                             <BarChart3 className="h-5 w-5 text-primary" />
                             Relatório Geral
                         </button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-white/10">
+                    <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-slate-200 dark:border-white/10">
                         <DialogHeader>
-                            <DialogTitle>Relatório Geral: {monthNames[viewingMonth]} {viewingYear}</DialogTitle>
+                            <DialogTitle className="text-slate-950 dark:text-white">Relatório Geral: {monthNames[viewingMonth]} {viewingYear}</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
                             <div className="space-y-4">
-                                <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground">Visão Comparativa (Total Lançado)</h4>
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground">Visão Comparativa (Total Lançado)</h4>
                                 <div className="space-y-3">
-                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-white/5 flex justify-between items-center">
-                                        <span className="text-sm font-medium">Total de Entradas</span>
+                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 flex justify-between items-center">
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Entradas</span>
                                         <span className="font-display font-black text-success">{formatCurrency(reportTotalIncome)}</span>
                                     </div>
-                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-white/5 flex justify-between items-center">
-                                        <span className="text-sm font-medium">Total de Saídas</span>
+                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 flex justify-between items-center">
+                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Saídas</span>
                                         <span className="font-display font-black text-destructive">{formatCurrency(reportTotalExpense)}</span>
                                     </div>
                                     <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex justify-between items-center">
-                                        <span className="text-sm font-bold">Saldo Planejado</span>
-                                        <span className="font-display font-black">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
+                                        <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Planejado</span>
+                                        <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-4 text-center">
-                                <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground text-left ml-2">Distribuição de Gastos</h4>
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground text-left ml-2">Distribuição de Gastos</h4>
                                 <div className="h-[200px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
@@ -362,43 +349,43 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                     <Plus className="h-5 w-5 text-primary" />
                     Novo Lançamento
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-5 gap-y-7">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
                     <div className="space-y-2 lg:col-span-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Descrição</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Descrição</label>
                         <input
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Ex: Mercado mensal"
-                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
+                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                         />
                     </div>
 
                     <div className="space-y-2 lg:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Valor (R$)</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Valor (R$)</label>
                         <input
                             type="number"
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
                             placeholder="0,00"
-                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
+                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
                         />
                     </div>
 
                     <div className="space-y-2 lg:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Data</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Data</label>
                         <div className="relative group">
-                            <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 group-hover:text-primary transition-colors" />
+                            <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground/70" />
                             <input
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none text-slate-800 dark:text-white transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
+                                className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none text-slate-950 dark:text-white transition-all"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2 lg:col-span-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 ml-2">Categoria</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Categoria</label>
                         <div className="flex gap-2">
                             <select
                                 value={type}
@@ -407,12 +394,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                     setType(newType);
                                     setCategory(categories[newType][0]);
                                 }}
-                                className={cn(
-                                    "w-[90px] px-2 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-tighter border-none focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all",
-                                    type === 'income'
-                                        ? "bg-success/10 text-success hover:bg-success/20"
-                                        : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                                )}
+                                className="w-[100px] bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-3 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all text-slate-950 dark:text-white"
                             >
                                 <option value="expense">Saída</option>
                                 <option value="income">Entrada</option>
@@ -420,41 +402,19 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                             <select
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
-                                className="flex-1 bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-4 py-3.5 rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-800 dark:text-white transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
+                                className="flex-1 bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-4 py-3.5 rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-950 dark:text-white transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
                             >
                                 {categories[type].map((cat: string) => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
-                            <button
-                                onClick={() => setShowAddCat(!showAddCat)}
-                                className="p-4 rounded-2xl bg-primary/10 hover:bg-primary/20 transition-all shrink-0 text-primary border border-primary/5 shadow-sm shadow-primary/5"
-                            >
-                                <Plus className="h-4 w-4 stroke-[3px]" />
-                            </button>
                         </div>
-                        {showAddCat && (
-                            <div className="flex gap-2 mt-2 animate-in slide-in-from-top-2">
-                                <input
-                                    value={newCatName}
-                                    onChange={(e) => setNewCatName(e.target.value)}
-                                    placeholder="Nome da categoria..."
-                                    className="flex-1 bg-secondary/80 dark:bg-secondary/10 border border-slate-300 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white shadow-inner"
-                                />
-                                <button
-                                    onClick={addCategory}
-                                    className="px-4 py-2 bg-primary dark:bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest shrink-0 shadow-lg shadow-primary/20 active:scale-95 transition-all"
-                                >
-                                    Add
-                                </button>
-                            </div>
-                        )}
                     </div>
 
                     <div className="flex items-end lg:col-span-2">
                         <button
                             onClick={addTransaction}
-                            className="w-full h-[52px] rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all active:scale-95 flex items-center justify-center gap-2 group"
+                            className="w-full h-[52px] rounded-2xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-black uppercase tracking-widest text-xs hover:scale-[1.02] shadow-xl shadow-slate-200 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 group"
                         >
                             <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
                             <span>Lançar</span>
@@ -510,11 +470,11 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                                         {t.isCompleted ? <Check className="h-5 w-5 stroke-[3px]" /> : <DollarSign className="h-5 w-5" />}
                                     </button>
                                     <div className="min-w-0">
-                                        <p className={cn("font-bold text-sm sm:text-base truncate", !t.isCompleted && "text-muted-foreground/60")}>{t.description}</p>
+                                        <p className={cn("font-bold text-sm sm:text-base truncate", t.isCompleted ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-muted-foreground/60")}>{t.description}</p>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{t.category}</span>
-                                            <span className="text-muted-foreground/30">•</span>
-                                            <span className="text-[10px] font-medium text-muted-foreground italic">{new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-muted-foreground/60">{t.category}</span>
+                                            <span className="text-slate-400 dark:text-muted-foreground/30">•</span>
+                                            <span className="text-[10px] font-medium text-slate-600 dark:text-muted-foreground italic">{new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                                         </div>
                                     </div>
                                 </div>

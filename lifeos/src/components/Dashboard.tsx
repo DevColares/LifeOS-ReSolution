@@ -66,8 +66,8 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
       {/* Discreet Profile Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
-          <h2 className="text-4xl font-display font-black tracking-tight mb-2">Painel</h2>
-          <p className="text-muted-foreground text-lg text-primary/60">Seu dia organizado em um só lugar.</p>
+          <h2 className="text-4xl font-display font-black tracking-tight mb-2 text-slate-950 dark:text-white">Painel</h2>
+          <p className="text-slate-600 dark:text-primary/60 text-lg">Seu dia organizado em um só lugar.</p>
         </div>
 
         <div className="flex items-center gap-3 bg-secondary/30 p-2 pr-4 rounded-2xl border border-white/10 shrink-0">
@@ -78,7 +78,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               <User className="h-5 w-5 text-primary" />
             )}
           </div>
-          <span className="text-xs sm:text-sm font-bold tracking-tight pr-1 sm:pr-0">{userProfile.name}</span>
+          <span className="text-xs sm:text-sm font-bold tracking-tight pr-1 sm:pr-0 text-slate-900 dark:text-white">{userProfile.name}</span>
         </div>
       </div>
 
@@ -92,8 +92,8 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               <Wallet className="h-8 w-8" />
             </div>
             <div className="text-right min-w-0">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Saldo Disponível</span>
-              <p className={cn("text-3xl sm:text-4xl font-display font-black mt-1 truncate", totalBalance >= 0 ? "text-slate-900 dark:text-white" : "text-destructive")}>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/60">Saldo Disponível</span>
+              <p className={cn("text-3xl sm:text-4xl font-display font-black mt-1 truncate", totalBalance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
                 {formatCurrency(totalBalance)}
               </p>
             </div>
@@ -101,7 +101,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
           <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-white/5 relative z-10">
             <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Entradas (Mês)</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/50">Entradas (Mês)</p>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-success opacity-40" />
                 <p className="text-lg sm:text-xl font-display font-bold text-success truncate">
@@ -110,7 +110,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               </div>
             </div>
             <div className="space-y-1 px-4 border-l border-slate-100 dark:border-white/5">
-              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Saídas (Mês)</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/50">Saídas (Mês)</p>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-destructive opacity-40" />
                 <p className="text-lg sm:text-xl font-display font-bold text-destructive truncate">
@@ -124,7 +124,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
         <div className="glass-card p-6 flex flex-col min-h-[220px]">
           <div className="flex items-center gap-2 mb-4">
             <PieChartIcon className="h-4 w-4 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gastos por Categoria</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground">Gastos por Categoria</span>
           </div>
           <div className="flex-1 flex items-center">
             <div className="h-[140px] w-[140px] shrink-0">
@@ -155,9 +155,9 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
                   <div key={entry.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                      <span className="text-[10px] font-bold truncate text-muted-foreground">{entry.name}</span>
+                      <span className="text-[10px] font-bold truncate text-slate-600 dark:text-muted-foreground">{entry.name}</span>
                     </div>
-                    <span className="text-[10px] font-black ml-2">{formatCurrency(entry.value)}</span>
+                    <span className="text-[10px] font-black ml-2 text-slate-900 dark:text-white">{formatCurrency(entry.value)}</span>
                   </div>
                 ))
               )}
@@ -174,8 +174,8 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               <card.icon className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-xl lg:text-3xl font-display font-black leading-none truncate">{card.value}</p>
-              <p className="text-[10px] font-medium text-muted-foreground mt-1 uppercase tracking-wider">{card.label}</p>
+              <p className="text-xl lg:text-3xl font-display font-black leading-none truncate text-slate-950 dark:text-white">{card.value}</p>
+              <p className="text-[10px] font-medium text-slate-500 dark:text-muted-foreground mt-1 uppercase tracking-wider">{card.label}</p>
             </div>
           </div>
         ))}
@@ -204,12 +204,12 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               <div key={h.id} className="group flex items-center gap-4 py-4 px-5 rounded-2xl bg-secondary/30 hover:bg-secondary/50 transition-all cursor-pointer">
                 <div className="h-3 w-3 rounded-full bg-warning shadow-sm shadow-warning/20 group-hover:scale-125 transition-transform" />
                 <div className="flex-1">
-                  <p className="text-sm font-bold">{h.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{h.category}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{h.name}</p>
+                  <p className="text-xs text-slate-600 dark:text-muted-foreground mt-0.5">{h.category}</p>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-black text-streak">{h.streak}d</span>
-                  <span className="text-[10px] text-muted-foreground/50 uppercase">Streak</span>
+                  <span className="text-[10px] text-slate-500 dark:text-muted-foreground/50 uppercase">Streak</span>
                 </div>
               </div>
             ))}
