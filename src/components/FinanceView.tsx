@@ -33,6 +33,7 @@ import {
 interface FinanceViewProps {
     transactions: Transaction[];
     setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
+    categories: any;
 }
 
 const defaultCategories = {
@@ -40,16 +41,14 @@ const defaultCategories = {
     expense: ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Outros"]
 };
 
-export default function FinanceView({ transactions, setTransactions }: FinanceViewProps) {
+export default function FinanceView({ transactions, setTransactions, categories }: FinanceViewProps) {
     const [description, setDescription] = useState("");
     const [value, setValue] = useState("");
     const [type, setType] = useState<'income' | 'expense'>('expense');
-    const [category, setCategory] = useState(defaultCategories.expense[0]);
+    const [category, setCategory] = useState((categories || defaultCategories).expense[0]);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
     const [repeatCount, setRepeatCount] = useState("1");
-
-    const [categories] = useLocalStorage("lifeos-finance-categories", defaultCategories);
 
     // Month selection state
     const [viewingMonth, setViewingMonth] = useState(new Date().getMonth());

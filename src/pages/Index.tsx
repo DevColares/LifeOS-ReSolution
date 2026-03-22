@@ -6,16 +6,41 @@ import GoalsView from "@/components/GoalsView";
 import RelationshipsView from "@/components/RelationshipsView";
 import Settings from "@/components/Settings";
 import FinanceView from "@/components/FinanceView";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Habit, Goal, Relationship, Transaction } from "@/lib/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthScreen } from "@/components/AuthScreen";
+import { Loader2 } from "lucide-react";
+import { useFirestoreSync, useFirestoreDocSync } from "@/hooks/useFirestoreSync";
 
 const Index = () => {
   const [view, setView] = useState<View>("dashboard");
-  const [habits, setHabits] = useLocalStorage<Habit[]>("lifeos-habits", []);
-  const [goals, setGoals] = useLocalStorage<Goal[]>("lifeos-goals", []);
-  const [relationships, setRelationships] = useLocalStorage<Relationship[]>("lifeos-relationships", []);
-  const [transactions, setTransactions] = useLocalStorage<Transaction[]>("lifeos-finance", []);
-  const [userProfile, setUserProfile] = useLocalStorage<{ name: string, photo: string }>("lifeos-user-profile", { name: "Usuário", photo: "" });
+  const [habits, setHabits, hLoading] = useFirestoreSync<Habit>("habits", []);
+  const [goals, setGoals, gLoading] = useFirestoreSync<Goal>("goals", []);
+  const [relationships, setRelationships, rLoading] = useFirestoreSync<Relationship>("relationships", []);
+  const [transactions, setTransactions, tLoading] = useFirestoreSync<Transaction>("finance", []);
+  const [userProfile, setUserProfile, pLoading] = useFirestoreDocSync<{ name: string, photo: string }>("profile", { name: "Usuário", photo: "" });
+  const [categories, setCategories, cLoading] = useFirestoreDocSync<any>("categories", {
+    income: ["Salário", "Investimento", "Venda", "Presente", "Outros"],
+    expense: ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Outros"]
+  });
+
+  const { user, loading: authLoading } = useAuth();
+  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || authLoading;
+
+  if (isSyncing) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 text-primary animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sincronizando com a Nuvem...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !user.emailVerified) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden relative">
@@ -28,8 +53,19 @@ const Index = () => {
           {view === "habits" && <HabitsView habits={habits} setHabits={setHabits} goals={goals} />}
           {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} habits={habits} />}
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
-          {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} />}
-          {view === "settings" && <Settings userProfile={userProfile} setUserProfile={setUserProfile} />}
+          {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} categories={categories} />}
+          {view === "settings" && (
+            <Settings 
+                userProfile={userProfile} 
+                setUserProfile={setUserProfile} 
+                habits={habits}
+                goals={goals}
+                relationships={relationships}
+                transactions={transactions}
+                categories={categories}
+                setCategories={setCategories}
+            />
+          )}
         </div>
       </main>
     </div>

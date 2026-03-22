@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useDataExport } from "@/hooks/useDataExport";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useAuth } from "@/contexts/AuthContext";
+import { Habit, Goal, Relationship, Transaction } from "@/lib/types";
 
 const defaultCategories = {
   income: ["Salário", "Investimento", "Venda", "Presente", "Outros"],
@@ -13,16 +15,26 @@ const defaultCategories = {
 interface SettingsProps {
   userProfile: { name: string; photo: string };
   setUserProfile: React.Dispatch<React.SetStateAction<{ name: string; photo: string }>>;
+  habits: Habit[];
+  goals: Goal[];
+  relationships: Relationship[];
+  transactions: Transaction[];
+  categories: any;
+  setCategories: React.Dispatch<React.SetStateAction<any>>;
 }
 
-export default function Settings({ userProfile, setUserProfile }: SettingsProps) {
+export default function Settings({ 
+    userProfile, setUserProfile, 
+    habits, goals, relationships, transactions,
+    categories, setCategories
+}: SettingsProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [, setImportError] = useState<string | null>(null);
-  const { exportData, importData, clearData } = useDataExport();
+  const { user } = useAuth();
+  const { exportData, importData, clearData } = useDataExport(user);
   const { isDark, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [categories, setCategories] = useLocalStorage("lifeos-finance-categories", defaultCategories);
   const [newCatName, setNewCatName] = useState("");
   const [activeTab, setActiveTab] = useState<'income' | 'expense'>('expense');
 
@@ -188,7 +200,14 @@ export default function Settings({ userProfile, setUserProfile }: SettingsProps)
           <div className="flex flex-col gap-3">
             <button
               disabled={isImporting}
-              onClick={exportData}
+              onClick={() => exportData({
+                  habits,
+                  goals,
+                  relationships,
+                  finance: transactions,
+                  userProfile,
+                  categories
+              })}
               className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
             >
               <Download className="h-5 w-5" />

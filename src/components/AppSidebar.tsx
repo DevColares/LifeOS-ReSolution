@@ -1,7 +1,8 @@
-import { LayoutDashboard, Target, Flame, Settings, Users, Download, Wallet } from "lucide-react";
+import { LayoutDashboard, Target, Flame, Settings, Users, Download, Wallet, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type View = "dashboard" | "habits" | "goals" | "relationships" | "settings" | "finance";
 
@@ -21,6 +22,7 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ active, onNavigate }: AppSidebarProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { logout } = useAuth();
 
   useEffect(() => {
     window.addEventListener("beforeinstallprompt", (e) => {
@@ -108,15 +110,24 @@ export default function AppSidebar({ active, onNavigate }: AppSidebarProps) {
         )}
       >
         <div className="flex items-center justify-between px-8 py-8">
-          <h1 className="text-2xl font-display font-black tracking-tighter">
+          <h1 className="text-2xl font-display font-black tracking-tighter text-foreground">
             LIFE<span className="text-primary">OS</span>
           </h1>
         </div>
         <div className="mt-2 flex-1">{nav}</div>
-        <div className="px-8 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50">v1.2</span>
+        <div className="px-8 py-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50">v1.2</span>
+            </div>
+            <button 
+                onClick={logout}
+                className="p-3 rounded-2xl bg-secondary/30 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all group"
+                title="Sair"
+            >
+                <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform" />
+            </button>
           </div>
         </div>
       </aside>
