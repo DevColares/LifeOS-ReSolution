@@ -48,18 +48,24 @@ export function useFirestoreSync<T extends { id?: string }>(
     return () => unsubscribe();
   }, [user, collectionPath]);
 
-  // Sync entire array (Full replacement)
-  const syncFullArray = async (newItems: T[]) => {
+  // Sync changes (Adds, Updates, and DELETIONS)
+  const syncChanges = async (newItems: T[]) => {
     if (!user) return;
     
     try {
       const batch = writeBatch(db);
       const itemsColl = collection(db, "users", user.uid, collectionPath);
       
-      // 1. Delete old items (Careful: this only deletes what's in 'data', not all cloud docs)
-      // To be safe and clean, we'd need to fetch and delete all, but for now we setDoc (merge)
-      // or just overwrite by ID.
-      
+      // 1. Detect and handle deletions
+      const newItemIds = new Set(newItems.map(i => i.id).filter(Boolean));
+      data.forEach(oldItem => {
+        if (oldItem.id && !newItemIds.has(oldItem.id)) {
+          const dRef = doc(itemsColl, oldItem.id);
+          batch.delete(dRef);
+        }
+      });
+
+      // 2. Handle Adds and Updates
       for (const item of newItems) {
         if (!item.id) continue;
         const dRef = doc(itemsColl, item.id);
@@ -75,8 +81,9 @@ export function useFirestoreSync<T extends { id?: string }>(
 
   const updateData = (value: T[] | ((prev: T[]) => T[])) => {
     const nextValue = value instanceof Function ? value(data) : value;
+    const previousValue = [...data]; // Guardamos o estado anterior para comparar
     setData(nextValue); // Optimistic UI
-    syncFullArray(nextValue);
+    syncChanges(nextValue);
   };
 
   return [data, updateData, loading];
