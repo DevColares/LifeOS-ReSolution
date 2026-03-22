@@ -45,4 +45,5 @@ export interface Transaction {
   type: 'income' | 'expense';
   installments?: number;
   currentInstallment?: number;
+  groupId?: string;
 }

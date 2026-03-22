@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { Transaction } from "@/lib/types";
 import {
     Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar,
-    DollarSign, Check, ChevronLeft, ChevronRight, BarChart3, Repeat
+    DollarSign, Check, ChevronLeft, ChevronRight, BarChart3, Repeat,
+    Tag, ArrowUp, ArrowDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -14,6 +15,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell
@@ -43,6 +54,10 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
     // Month selection state
     const [viewingMonth, setViewingMonth] = useState(new Date().getMonth());
     const [viewingYear, setViewingYear] = useState(new Date().getFullYear());
+
+    // State for deletion
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
     const monthNames = [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -77,6 +92,7 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
         for (let i = 0; i < count; i++) {
             const transactionDate = addMonths(baseDate, i);
             const isInstallment = count > 1;
+            const groupId = isInstallment ? crypto.randomUUID() : undefined;
             
             newTransactions.push({
                 id: crypto.randomUUID(),
@@ -87,7 +103,8 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                 date: format(transactionDate, 'yyyy-MM-dd'),
                 isCompleted: false,
                 installments: count > 1 ? count : undefined,
-                currentInstallment: count > 1 ? i + 1 : undefined
+                currentInstallment: count > 1 ? i + 1 : undefined,
+                groupId: isInstallment ? groupId : undefined
             });
         }
 
@@ -98,9 +115,40 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
     };
 
     const deleteTransaction = (id: string) => {
-        if (confirm("Deseja excluir este lançamento?")) {
-            setTransactions(prev => prev.filter(t => t.id !== id));
+        const transaction = transactions.find(t => t.id === id);
+        if (!transaction) return;
+
+        if (transaction.groupId || transaction.installments) {
+            setTransactionToDelete(transaction);
+            setIsDeleteDialogOpen(true);
+        } else {
+            if (confirm("Deseja excluir este lançamento?")) {
+                setTransactions(prev => prev.filter(t => t.id !== id));
+            }
         }
+    };
+
+    const confirmDelete = (deleteAll: boolean) => {
+        if (!transactionToDelete) return;
+
+        if (deleteAll) {
+            // If it has groupId, use it. Otherwise fall back to description matching for older entries
+            if (transactionToDelete.groupId) {
+                setTransactions(prev => prev.filter(t => t.groupId !== transactionToDelete.groupId));
+            } else {
+                // Fuzzy match for transactions created before groupId was added
+                const baseDescription = transactionToDelete.description.replace(/\s\(\d+\/\d+\)$/, "");
+                setTransactions(prev => prev.filter(t => {
+                    const tBase = t.description.replace(/\s\(\d+\/\d+\)$/, "");
+                    return tBase !== baseDescription || t.value !== transactionToDelete.value || t.type !== transactionToDelete.type;
+                }));
+            }
+        } else {
+            setTransactions(prev => prev.filter(t => t.id !== transactionToDelete.id));
+        }
+
+        setIsDeleteDialogOpen(false);
+        setTransactionToDelete(null);
     };
 
     const toggleComplete = (id: string) => {
@@ -358,92 +406,123 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
             </div>
 
             {/* Add Transaction Form */}
-            <div className="glass-card p-8 rounded-[2rem]">
-                <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-primary" />
-                    Novo Lançamento
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
-                    <div className="space-y-2 lg:col-span-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Descrição</label>
+            <div className="glass-card p-10 rounded-[2.5rem] border-slate-200 dark:border-white/5 shadow-2xl bg-secondary/30 dark:bg-card/40 backdrop-blur-2xl">
+                <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+                    <h3 className="text-2xl font-display font-black tracking-tight text-slate-950 dark:text-white flex items-center gap-2">
+                        + Novo Lançamento
+                    </h3>
+                    
+                    {/* Segmented Control for Type */}
+                    <div className="flex bg-secondary/50 dark:bg-black/40 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
+                        <button
+                            onClick={() => {
+                                setType('income');
+                                setCategory(categories.income[0]);
+                            }}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                type === 'income' 
+                                    ? "bg-bg-success/20 text-success shadow-lg shadow-success/10 border border-success/20" 
+                                    : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            <ArrowUp className="h-3 w-3" />
+                            Receita
+                        </button>
+                        <button
+                            onClick={() => {
+                                setType('expense');
+                                setCategory(categories.expense[0]);
+                            }}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                type === 'expense' 
+                                    ? "bg-destructive/20 text-destructive shadow-lg shadow-destructive/10 border border-destructive/20" 
+                                    : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            <ArrowDown className="h-3 w-3" />
+                            Despesa
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                    {/* First Row: Description and Value */}
+                    <div className="space-y-3 md:col-span-8">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Descrição</label>
                         <input
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Ex: Mercado mensal"
-                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
+                            className="w-full bg-background/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all outline-none"
                         />
                     </div>
 
-                    <div className="space-y-2 lg:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Valor (R$)</label>
-                        <input
-                            type="number"
-                            value={value}
-                            onChange={(e) => setValue(e.target.value)}
-                            placeholder="0,00"
-                            className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all"
-                        />
-                    </div>
-
-                    <div className="space-y-2 lg:col-span-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Data</label>
-                        <div className="relative group">
-                            <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground/70" />
+                    <div className="space-y-3 md:col-span-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Valor (R$)</label>
+                        <div className="relative">
+                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">R$</span>
                             <input
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-primary/20 appearance-none text-slate-950 dark:text-white transition-all"
+                                type="number"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                placeholder="0,00"
+                                className="w-full bg-background/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all outline-none"
                             />
                         </div>
                     </div>
 
-                    <div className="space-y-2 lg:col-span-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Categoria</label>
-                        <div className="flex gap-2">
-                            <select
-                                value={type}
-                                onChange={(e) => {
-                                    const newType = e.target.value as 'income' | 'expense';
-                                    setType(newType);
-                                    setCategory(categories[newType][0]);
-                                }}
-                                className="w-[100px] bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-2 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none transition-all text-slate-950 dark:text-white"
-                            >
-                                <option value="expense">Saída</option>
-                                <option value="income">Entrada</option>
-                            </select>
+                    {/* Second Row: Date, Category, Repeat */}
+                    <div className="space-y-3 md:col-span-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Data</label>
+                        <div className="relative group">
+                            <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full bg-background/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white transition-all outline-none appearance-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 md:col-span-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Categoria</label>
+                        <div className="relative">
+                            <Tag className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                             <select
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
-                                className="flex-1 bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-4 py-3.5 rounded-2xl text-[11px] font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none text-slate-950 dark:text-white transition-all hover:bg-secondary/70 dark:hover:bg-slate-800/60"
+                                className="w-full bg-background/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white transition-all outline-none appearance-none cursor-pointer"
                             >
                                 {categories[type].map((cat: string) => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                    <option key={cat} value={cat} className="bg-white dark:bg-slate-900 border-none text-slate-900 dark:text-white">{cat}</option>
                                 ))}
                             </select>
                         </div>
                     </div>
 
-                    <div className="space-y-2 lg:col-span-1">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/70 ml-2">Repetir</label>
+                    <div className="space-y-3 md:col-span-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Repetir</label>
                         <div className="relative">
-                            <Repeat className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                            <Repeat className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                             <input
                                 type="number"
                                 min="1"
                                 max="60"
                                 value={repeatCount}
                                 onChange={(e) => setRepeatCount(e.target.value)}
-                                className="w-full bg-secondary/50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl pl-8 pr-2 py-3.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white transition-all"
+                                className="w-full bg-background/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 text-slate-950 dark:text-white transition-all outline-none"
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-end lg:col-span-2">
+                    {/* Action Button */}
+                    <div className="flex items-end md:col-span-2">
                         <button
                             onClick={addTransaction}
-                            className="w-full h-[52px] rounded-2xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-black uppercase tracking-widest text-xs hover:scale-[1.02] shadow-xl shadow-slate-200 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 group"
+                            className="w-full h-[58px] rounded-full bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-black uppercase tracking-widest text-xs hover:scale-[1.05] shadow-2xl dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 group"
                         >
                             <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
                             <span>Lançar</span>
@@ -523,6 +602,37 @@ export default function FinanceView({ transactions, setTransactions }: FinanceVi
                     )}
                 </div>
             </div>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-slate-200 dark:border-white/10">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Lançamento Parcelado</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Este lançamento possui parcelas. Deseja excluir apenas esta parcela ou todas as outras parcelas relacionadas?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel onClick={() => {
+                            setIsDeleteDialogOpen(false);
+                            setTransactionToDelete(null);
+                        }}>
+                            Cancelar
+                        </AlertDialogCancel>
+                        <button
+                            onClick={() => confirmDelete(false)}
+                            className="bg-secondary hover:bg-secondary/80 text-secondary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                        >
+                            Apenas esta
+                        </button>
+                        <AlertDialogAction
+                            onClick={() => confirmDelete(true)}
+                            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                        >
+                            Excluir todas
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
