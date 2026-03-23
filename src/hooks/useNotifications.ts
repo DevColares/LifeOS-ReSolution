@@ -27,15 +27,27 @@ export function useNotifications(config: any | null) {
             description: message,
           });
 
-          // OS Notification (Requires try/catch due to mobile browsers throwing Illegal Constructor)
+          // OS Notification
           if ("Notification" in window && Notification.permission === "granted") {
             try {
-              new Notification("LifeOS", {
-                body: message,
-                icon: "/favicon.ico", 
-              });
+              if ('serviceWorker' in navigator) {
+                // Se o Service Worker estiver pronto, usa ele (obrigatório para Android/Mobile)
+                navigator.serviceWorker.ready.then((registration) => {
+                  registration.showNotification("LifeOS", {
+                    body: message,
+                    icon: "/favicon.ico",
+                    vibrate: [200, 100, 200, 100, 200, 100, 200], // Vibração forte
+                    requireInteraction: true // A notificação fica até o usuário clicar (se o dispositivo suportar)
+                  });
+                });
+              } else {
+                new Notification("LifeOS", {
+                  body: message,
+                  icon: "/favicon.ico", 
+                });
+              }
             } catch (e) {
-              console.warn("Navegador requer Service Worker para notificações nativas.", e);
+              console.warn("Navegador com bloqueios específicos para push local.", e);
             }
           }
         }
