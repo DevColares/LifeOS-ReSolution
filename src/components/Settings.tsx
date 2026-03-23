@@ -78,6 +78,35 @@ export default function Settings({
     }));
   };
 
+  const testNotification = () => {
+    const msg = "🔔 Teste de Notificação LifeOS funcionando perfeitamente!";
+    
+    // Fallback Toast
+    if (window.hasOwnProperty("sonnerToast" as any)) {
+      // If we exported toast globally or we just use alert for testing if toast isn't available
+    }
+    
+    if ("Notification" in window && Notification.permission === "granted") {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then((registration) => {
+          if (registration) {
+            registration.showNotification("LifeOS - Teste", {
+              body: msg,
+              vibrate: [200, 100, 200],
+              icon: "/favicon.ico"
+            } as any);
+          } else {
+            new Notification("LifeOS - Teste", { body: msg, icon: "/favicon.ico" });
+          }
+        });
+      } else {
+        new Notification("LifeOS - Teste", { body: msg, icon: "/favicon.ico" });
+      }
+    } else {
+      alert("Permissão de notificação: " + Notification.permission);
+    }
+  };
+
   const addCategory = () => {
     if (!newCatName.trim()) return;
     setCategories((prev: any) => ({
@@ -288,6 +317,16 @@ export default function Settings({
                      </button>
                    </div>
                  ))}
+               </div>
+
+               <div className="pt-2">
+                 <button
+                    onClick={testNotification}
+                    className="w-full py-3 rounded-xl border border-primary/20 text-primary font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary/10 transition-all active:scale-95"
+                 >
+                   <Bell className="h-4 w-4" />
+                   Testar Notificação Agora
+                 </button>
                </div>
              </div>
           )}
