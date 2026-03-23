@@ -37,8 +37,8 @@ export function useNotifications(config: any | null) {
             } catch (e) {
               console.log("Navegador rejeitou construtor direto (Mobile). Tentando via ServiceWorker...");
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then((registration) => {
-                  registration.showNotification("LifeOS", {
+                navigator.serviceWorker.register('/sw.js').then((registration) => {
+                  return registration.showNotification("LifeOS", {
                     body: message,
                     vibrate: [200, 100, 200, 100, 200], 
                     requireInteraction: true

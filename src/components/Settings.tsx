@@ -90,13 +90,14 @@ export default function Settings({
       try {
         new Notification("LifeOS - Teste", { body: msg });
       } catch (e) {
+        // Fallback robusto para Android: Garante que pegamos a referência local oficial forçando o objeto de registro
         if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification("LifeOS - Teste", {
+          navigator.serviceWorker.register('/sw.js').then((registration) => {
+            return registration.showNotification("LifeOS - Teste", {
               body: msg,
-              vibrate: [200, 100, 200, 100, 200]
+              vibrate: [200, 100, 200]
             } as any);
-          });
+          }).catch(err => console.error(err));
         }
       }
     } else {
