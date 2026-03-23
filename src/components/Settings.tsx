@@ -261,44 +261,55 @@ export default function Settings({
         </div>
 
         {/* PWA Install */}
-        <div className="glass-card p-8 space-y-6">
-          <div className="space-y-1">
-            <h3 className="text-xl font-display font-bold">Instalar App</h3>
-            <p className="text-sm text-muted-foreground">Adicione o LifeOS à tela inicial do seu celular.</p>
+        <div className="glass-card p-8 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Smartphone className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-display font-bold">Instalar App</h3>
+              <p className="text-sm text-muted-foreground">Adicione à tela inicial para notificações nativas.</p>
+            </div>
           </div>
 
           {isInstalled ? (
             <div className="flex items-center gap-4 p-4 rounded-2xl bg-success/10 border border-success/20">
-              <div className="p-2 bg-success/20 rounded-xl">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-              </div>
+              <CheckCircle2 className="h-6 w-6 text-success shrink-0" />
               <div>
-                <p className="text-sm font-bold text-success">App Instalado!</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Notificações nativas habilitadas</p>
+                <p className="text-sm font-bold text-success">App já instalado! ✓</p>
+                <p className="text-xs text-muted-foreground">Notificações nativas do Android estão habilitadas.</p>
               </div>
             </div>
-          ) : isInstallable ? (
-            <button
-              onClick={install}
-              className="w-full flex items-center justify-between p-4 rounded-2xl bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-primary rounded-xl">
-                  <Smartphone className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-bold">Instalar no Celular</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Toque para adicionar à tela inicial</p>
+          ) : (
+            <div className="space-y-4">
+              {isInstallable && (
+                <button
+                  onClick={install}
+                  className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95"
+                >
+                  <Smartphone className="h-5 w-5" />
+                  Instalar Agora (1 toque)
+                </button>
+              )}
+
+              <div className="p-4 rounded-2xl bg-secondary/40 border border-border/50 space-y-3">
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Instalação Manual — Chrome</p>
+                <div className="space-y-2">
+                  {[
+                    { n: "1", text: "No Chrome, toque nos 3 pontos  ⋮  (canto superior direito)" },
+                    { n: "2", text: "Selecione \"Adicionar à tela inicial\"" },
+                    { n: "3", text: "Toque em \"Adicionar\" na confirmação" },
+                    { n: "4", text: "Abra o LifeOS pelo ícone criado — notificações funcionarão!" },
+                  ].map(step => (
+                    <div key={step.n} className="flex gap-3 items-start">
+                      <div className="h-5 w-5 shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-[10px] font-black text-primary">{step.n}</span>
+                      </div>
+                      <p className="text-xs text-foreground/80 font-medium leading-relaxed">{step.text}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <Plus className="h-5 w-5 text-primary" />
-            </button>
-          ) : (
-            <div className="p-4 rounded-2xl bg-secondary/50 text-center space-y-2">
-              <Smartphone className="h-8 w-8 text-muted-foreground mx-auto" />
-              <p className="text-xs text-muted-foreground font-medium">
-                No Chrome, toque no menu <strong>⋮</strong> e selecione <strong>"Adicionar à tela inicial"</strong>
-              </p>
             </div>
           )}
         </div>
