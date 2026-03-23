@@ -30,15 +30,24 @@ export function useNotifications(config: any | null) {
           // OS Notification
           if ("Notification" in window && Notification.permission === "granted") {
             try {
+              console.log("Permissão concedida. Tentando emitir notificação nativa...");
               if ('serviceWorker' in navigator) {
-                // Se o Service Worker estiver pronto, usa ele (obrigatório para Android/Mobile)
-                navigator.serviceWorker.ready.then((registration) => {
-                  registration.showNotification("LifeOS", {
-                    body: message,
-                    icon: "/favicon.ico",
-                    vibrate: [200, 100, 200, 100, 200, 100, 200], // Vibração forte
-                    requireInteraction: true // A notificação fica até o usuário clicar (se o dispositivo suportar)
-                  } as any);
+                navigator.serviceWorker.getRegistration().then((registration) => {
+                  if (registration) {
+                    console.log("Service Worker encontrado. Disparando barra de notificação!");
+                    registration.showNotification("LifeOS", {
+                      body: message,
+                      icon: "/favicon.ico",
+                      vibrate: [200, 100, 200, 100, 200], 
+                      requireInteraction: true
+                    } as any);
+                  } else {
+                    console.warn("Sem registro de SW. Usando Notification API fallback.");
+                    new Notification("LifeOS", {
+                      body: message,
+                      icon: "/favicon.ico", 
+                    });
+                  }
                 });
               } else {
                 new Notification("LifeOS", {
@@ -47,8 +56,10 @@ export function useNotifications(config: any | null) {
                 });
               }
             } catch (e) {
-              console.warn("Navegador com bloqueios específicos para push local.", e);
+              console.error("Falha ao registrar notificação externa:", e);
             }
+          } else {
+              console.warn("Notificações da Web bloqueadas ou não suportadas: ", Notification.permission);
           }
         }
       }
