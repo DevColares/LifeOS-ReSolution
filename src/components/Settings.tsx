@@ -78,12 +78,12 @@ export default function Settings({
     }));
   };
 
-  const testNotification = () => {
+  const testNotification = async () => {
     const msg = "🔔 Teste de Notificação LifeOS funcionando perfeitamente!";
     
-    // Fallback Toast
-    if (window.hasOwnProperty("sonnerToast" as any)) {
-      // If we exported toast globally or we just use alert for testing if toast isn't available
+    // Auto-request permission if currently default (happens when synced from desktop via Firestore but phone never asked)
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+      await Notification.requestPermission();
     }
     
     if ("Notification" in window && Notification.permission === "granted") {
@@ -103,7 +103,7 @@ export default function Settings({
         new Notification("LifeOS - Teste", { body: msg, icon: "/favicon.ico" });
       }
     } else {
-      alert("Permissão de notificação: " + Notification.permission);
+      alert("Este dispositivo não tem permissão para notificações. Acesse as configurações de notificação local para permitir.");
     }
   };
 
