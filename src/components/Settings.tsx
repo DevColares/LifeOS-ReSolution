@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X, Plus } from "lucide-react";
+import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X, Plus, Bell, BellOff, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataExport } from "@/hooks/useDataExport";
 import { useTheme } from "@/hooks/useTheme";
@@ -21,12 +21,15 @@ interface SettingsProps {
   transactions: Transaction[];
   categories: any;
   setCategories: React.Dispatch<React.SetStateAction<any>>;
+  notificationsConfig: any;
+  setNotificationsConfig: React.Dispatch<React.SetStateAction<any>>;
 }
 
 export default function Settings({ 
     userProfile, setUserProfile, 
     habits, goals, relationships, transactions,
-    categories, setCategories
+    categories, setCategories,
+    notificationsConfig, setNotificationsConfig
 }: SettingsProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [, setImportError] = useState<string | null>(null);
@@ -37,6 +40,43 @@ export default function Settings({
 
   const [newCatName, setNewCatName] = useState("");
   const [activeTab, setActiveTab] = useState<'income' | 'expense'>('expense');
+  const [newNotifTime, setNewNotifTime] = useState("");
+
+  const requestNotificationPermission = async () => {
+    if (!("Notification" in window)) {
+      alert("Este navegador não suporta notificações de desktop.");
+      return;
+    }
+    
+    if (Notification.permission === "granted") {
+      setNotificationsConfig((prev: any) => ({ ...prev, enabled: !prev.enabled }));
+    } else if (Notification.permission !== "denied") {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setNotificationsConfig((prev: any) => ({ ...prev, enabled: true }));
+      }
+    } else {
+      alert("Você bloqueou as notificações. Por favor, libere nas configurações do navegador.");
+    }
+  };
+
+  const addNotificationTime = () => {
+    if (!newNotifTime || notificationsConfig?.times?.includes(newNotifTime)) return;
+    setNotificationsConfig((prev: any) => ({
+      ...prev,
+      times: [...(prev.times || []), newNotifTime].sort(),
+      count: (prev.times?.length || 0) + 1
+    }));
+    setNewNotifTime("");
+  };
+
+  const removeNotificationTime = (time: string) => {
+    setNotificationsConfig((prev: any) => ({
+      ...prev,
+      times: prev.times.filter((t: string) => t !== time),
+      count: prev.times.length - 1
+    }));
+  };
 
   const addCategory = () => {
     if (!newCatName.trim()) return;
@@ -189,6 +229,68 @@ export default function Settings({
               <div className={`h-4 w-4 bg-white rounded-full transition-transform ${isDark ? 'translate-x-6' : 'translate-x-0'}`} />
             </div>
           </button>
+        </div>
+
+        {/* Notifications Management */}
+        <div className="glass-card p-8 space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-display font-bold">Notificações</h3>
+            <p className="text-sm text-muted-foreground">Lembretes sobre seus hábitos e metas.</p>
+          </div>
+
+          <button
+            onClick={requestNotificationPermission}
+            className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all group ${notificationsConfig?.enabled ? 'bg-primary/20 hover:bg-primary/30 border border-primary/20' : 'bg-secondary/50 hover:bg-secondary border border-transparent'}`}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`p-2 rounded-xl transition-colors ${notificationsConfig?.enabled ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
+                {notificationsConfig?.enabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5 text-muted-foreground" />}
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">{notificationsConfig?.enabled ? "Notificações Ativas" : "Notificações Desativadas"}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Clique para alternar permissão</p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full p-1 transition-colors ${notificationsConfig?.enabled ? 'bg-primary' : 'bg-muted/30'}`}>
+              <div className={`h-4 w-4 bg-white rounded-full transition-transform ${notificationsConfig?.enabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            </div>
+          </button>
+
+          {notificationsConfig?.enabled && (
+             <div className="space-y-4 pt-4 border-t border-border/50 animate-in fade-in slide-in-from-top-2">
+               <div>
+                 <p className="text-sm font-bold">Horários</p>
+                 <p className="text-xs text-muted-foreground">Defina quando deseja ser lembrado ({(notificationsConfig?.times || []).length} configurados)</p>
+               </div>
+               
+               <div className="flex gap-2 items-center">
+                 <input
+                   type="time"
+                   value={newNotifTime}
+                   onChange={(e) => setNewNotifTime(e.target.value)}
+                   className="flex-1 bg-secondary/50 border-none rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                 />
+                 <button 
+                    onClick={addNotificationTime}
+                    disabled={!newNotifTime}
+                    className="p-2.5 bg-primary text-primary-foreground rounded-xl disabled:opacity-50 hover:scale-105 active:scale-95 transition-all"
+                  >
+                   <Plus className="h-5 w-5" />
+                 </button>
+               </div>
+
+               <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                 {(notificationsConfig?.times || []).map((time: string) => (
+                   <div key={time} className="group flex items-center justify-between bg-secondary/30 hover:bg-secondary/50 border border-border/50 p-2 px-3 rounded-xl transition-all">
+                     <span className="text-sm font-bold flex items-center gap-2 text-foreground"><Clock className="h-4 w-4 text-primary" />{time}</span>
+                     <button onClick={() => removeNotificationTime(time)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all">
+                       <X className="h-4 w-4" />
+                     </button>
+                   </div>
+                 ))}
+               </div>
+             </div>
+          )}
         </div>
 
         <div className="glass-card p-8 space-y-6">

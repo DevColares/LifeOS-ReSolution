@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AuthScreen } from "@/components/AuthScreen";
 import { Loader2 } from "lucide-react";
 import { useFirestoreSync, useFirestoreDocSync } from "@/hooks/useFirestoreSync";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const Index = () => {
   const [view, setView] = useState<View>("dashboard");
@@ -23,9 +24,17 @@ const Index = () => {
     income: ["Salário", "Investimento", "Venda", "Presente", "Outros"],
     expense: ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Outros"]
   });
+  const [notificationsConfig, setNotificationsConfig, nLoading] = useFirestoreDocSync<any>("notifications", {
+    enabled: false,
+    count: 1, // Optional: number of times, mainly represented via 'times' array length
+    times: ["08:00"],
+    message: "Hora de focar nos seus objetivos e hábitos!"
+  });
 
   const { user, loading: authLoading } = useAuth();
-  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || authLoading;
+  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || authLoading;
+
+  useNotifications(notificationsConfig);
 
   if (isSyncing) {
     return (
@@ -64,6 +73,8 @@ const Index = () => {
                 transactions={transactions}
                 categories={categories}
                 setCategories={setCategories}
+                notificationsConfig={notificationsConfig}
+                setNotificationsConfig={setNotificationsConfig}
             />
           )}
         </div>
