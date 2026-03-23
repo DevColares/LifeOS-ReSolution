@@ -38,7 +38,7 @@ export function useNotifications(config: any | null) {
                     icon: "/favicon.ico",
                     vibrate: [200, 100, 200, 100, 200, 100, 200], // Vibração forte
                     requireInteraction: true // A notificação fica até o usuário clicar (se o dispositivo suportar)
-                  });
+                  } as any);
                 });
               } else {
                 new Notification("LifeOS", {
