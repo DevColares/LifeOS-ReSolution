@@ -87,15 +87,17 @@ export default function Settings({
     }
     
     if ("Notification" in window && Notification.permission === "granted") {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.showNotification("LifeOS - Teste", {
-            body: msg,
-            vibrate: [200, 100, 200, 100, 200]
-          } as any);
-        });
-      } else {
+      try {
         new Notification("LifeOS - Teste", { body: msg });
+      } catch (e) {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification("LifeOS - Teste", {
+              body: msg,
+              vibrate: [200, 100, 200, 100, 200]
+            } as any);
+          });
+        }
       }
     } else {
       alert("Este dispositivo não tem permissão para notificações. Acesse as configurações de notificação local para permitir.");
