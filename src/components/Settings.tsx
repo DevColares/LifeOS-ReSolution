@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X, Plus, Bell, BellOff, Clock } from "lucide-react";
+import { Download, Upload, Trash2, AlertCircle, Settings as SettingsIcon, User, Camera, Sun, Moon, X, Plus, Bell, BellOff, Clock, Smartphone, CheckCircle2 } from "lucide-react";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { cn } from "@/lib/utils";
 import { useDataExport } from "@/hooks/useDataExport";
 import { useTheme } from "@/hooks/useTheme";
@@ -37,6 +38,7 @@ export default function Settings({
   const { exportData, importData, clearData } = useDataExport(user);
   const { isDark, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isInstallable, isInstalled, install } = usePwaInstall();
 
   const [newCatName, setNewCatName] = useState("");
   const [activeTab, setActiveTab] = useState<'income' | 'expense'>('expense');
@@ -256,6 +258,49 @@ export default function Settings({
               <div className={`h-4 w-4 bg-white rounded-full transition-transform ${isDark ? 'translate-x-6' : 'translate-x-0'}`} />
             </div>
           </button>
+        </div>
+
+        {/* PWA Install */}
+        <div className="glass-card p-8 space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-display font-bold">Instalar App</h3>
+            <p className="text-sm text-muted-foreground">Adicione o LifeOS à tela inicial do seu celular.</p>
+          </div>
+
+          {isInstalled ? (
+            <div className="flex items-center gap-4 p-4 rounded-2xl bg-success/10 border border-success/20">
+              <div className="p-2 bg-success/20 rounded-xl">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-success">App Instalado!</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Notificações nativas habilitadas</p>
+              </div>
+            </div>
+          ) : isInstallable ? (
+            <button
+              onClick={install}
+              className="w-full flex items-center justify-between p-4 rounded-2xl bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-2 bg-primary rounded-xl">
+                  <Smartphone className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold">Instalar no Celular</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Toque para adicionar à tela inicial</p>
+                </div>
+              </div>
+              <Plus className="h-5 w-5 text-primary" />
+            </button>
+          ) : (
+            <div className="p-4 rounded-2xl bg-secondary/50 text-center space-y-2">
+              <Smartphone className="h-8 w-8 text-muted-foreground mx-auto" />
+              <p className="text-xs text-muted-foreground font-medium">
+                No Chrome, toque no menu <strong>⋮</strong> e selecione <strong>"Adicionar à tela inicial"</strong>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Notifications Management */}
