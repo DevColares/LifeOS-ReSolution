@@ -32,27 +32,17 @@ export function useNotifications(config: any | null) {
             try {
               console.log("Permissão concedida. Tentando emitir notificação nativa...");
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistration().then((registration) => {
-                  if (registration) {
-                    console.log("Service Worker encontrado. Disparando barra de notificação!");
-                    registration.showNotification("LifeOS", {
-                      body: message,
-                      icon: "/favicon.ico",
-                      vibrate: [200, 100, 200, 100, 200], 
-                      requireInteraction: true
-                    } as any);
-                  } else {
-                    console.warn("Sem registro de SW. Usando Notification API fallback.");
-                    new Notification("LifeOS", {
-                      body: message,
-                      icon: "/favicon.ico", 
-                    });
-                  }
+                navigator.serviceWorker.ready.then((registration) => {
+                  console.log("Service Worker pronto. Disparando barra de notificação!");
+                  registration.showNotification("LifeOS", {
+                    body: message,
+                    vibrate: [200, 100, 200, 100, 200], 
+                    requireInteraction: true
+                  } as any);
                 });
               } else {
                 new Notification("LifeOS", {
-                  body: message,
-                  icon: "/favicon.ico", 
+                  body: message
                 });
               }
             } catch (e) {
