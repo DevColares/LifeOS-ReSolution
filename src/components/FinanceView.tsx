@@ -190,7 +190,7 @@ export default function FinanceView({ transactions, setTransactions, categories 
     const filteredTransactions = monthlyTransactions.filter(t => {
         if (filter === 'all') return true;
         return t.type === filter;
-    });
+    }).sort((a, b) => b.date.localeCompare(a.date));
 
     // Graph data: Transactions grouped by day
     const dailyData = useMemo(() => {
