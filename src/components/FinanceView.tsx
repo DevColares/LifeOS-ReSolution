@@ -176,7 +176,18 @@ export default function FinanceView({ transactions, setTransactions, categories 
         .filter(t => t.type === 'expense' && t.isCompleted)
         .reduce((acc, t) => acc + t.value, 0);
 
-    const balance = totalIncome - totalExpense;
+    const monthlyBalance = totalIncome - totalExpense;
+
+    const accumulatedBalance = useMemo(() => {
+        return transactions
+            .filter(t => t.isCompleted)
+            .filter(t => {
+                const tDate = new Date(t.date + 'T12:00:00');
+                const endOfMonth = new Date(viewingYear, viewingMonth + 1, 0, 23, 59, 59);
+                return tDate <= endOfMonth;
+            })
+            .reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
+    }, [transactions, viewingMonth, viewingYear]);
 
     // General Report Logic (All transactions, even pending)
     const reportTotalIncome = monthlyTransactions
@@ -249,9 +260,12 @@ export default function FinanceView({ transactions, setTransactions, categories 
                         <Wallet className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Saldo Líquido</p>
-                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", balance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
-                            {formatCurrency(balance)}
+                        <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Saldo Global (Acumulado)</p>
+                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", accumulatedBalance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
+                            {formatCurrency(accumulatedBalance)}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-tighter">
+                            Saldo do mês: <span className={monthlyBalance >= 0 ? "text-success" : "text-destructive"}>{formatCurrency(monthlyBalance)}</span>
                         </p>
                     </div>
                 </div>
