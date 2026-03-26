@@ -380,6 +380,20 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                         <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Planejado</span>
                                         <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
                                     </div>
+                                    <div className={cn(
+                                        "p-4 rounded-2xl border flex justify-between items-center",
+                                        accumulatedBalance >= 0
+                                            ? "bg-success/10 border-success/30"
+                                            : "bg-destructive/10 border-destructive/30"
+                                    )}>
+                                        <div>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Global Acumulado</span>
+                                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Até {monthNames[viewingMonth]} {viewingYear} (apenas concluídos)</p>
+                                        </div>
+                                        <span className={cn("font-display font-black text-lg", accumulatedBalance >= 0 ? "text-success" : "text-destructive")}>
+                                            {formatCurrency(accumulatedBalance)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-4 text-center">

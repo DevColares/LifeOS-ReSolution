@@ -6,7 +6,8 @@ import GoalsView from "@/components/GoalsView";
 import RelationshipsView from "@/components/RelationshipsView";
 import Settings from "@/components/Settings";
 import FinanceView from "@/components/FinanceView";
-import { Habit, Goal, Relationship, Transaction } from "@/lib/types";
+import NotesView from "@/components/NotesView";
+import { Habit, Goal, Relationship, Transaction, Note } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthScreen } from "@/components/AuthScreen";
 import { Loader2 } from "lucide-react";
@@ -19,6 +20,7 @@ const Index = () => {
   const [goals, setGoals, gLoading] = useFirestoreSync<Goal>("goals", []);
   const [relationships, setRelationships, rLoading] = useFirestoreSync<Relationship>("relationships", []);
   const [transactions, setTransactions, tLoading] = useFirestoreSync<Transaction>("finance", []);
+  const [notes, setNotes, notesLoading] = useFirestoreSync<Note>("notes", []);
   const [userProfile, setUserProfile, pLoading] = useFirestoreDocSync<{ name: string, photo: string }>("profile", { name: "Usuário", photo: "" });
   const [categories, setCategories, cLoading] = useFirestoreDocSync<any>("categories", {
     income: ["Salário", "Investimento", "Venda", "Presente", "Outros"],
@@ -32,7 +34,7 @@ const Index = () => {
   });
 
   const { user, loading: authLoading } = useAuth();
-  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || authLoading;
+  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || notesLoading || authLoading;
 
   useNotifications(notificationsConfig);
 
@@ -63,6 +65,7 @@ const Index = () => {
           {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} habits={habits} />}
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
           {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} categories={categories} />}
+          {view === "notes" && <NotesView notes={notes} setNotes={setNotes} />}
           {view === "settings" && (
             <Settings 
                 userProfile={userProfile} 

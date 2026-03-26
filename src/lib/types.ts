@@ -35,6 +35,17 @@ export interface Relationship {
   updatedAt: string;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  color: string;
+  tags: string[];
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Transaction {
   id: string;
   description: string;
