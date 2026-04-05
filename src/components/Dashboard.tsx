@@ -25,6 +25,10 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
   const totalBalance = transactions
     .filter(t => t.isCompleted)
+    .filter(t => {
+      const d = new Date(t.date + 'T12:00:00');
+      return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
+    })
     .reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
 
   const formatCurrency = (val: number) => {
@@ -92,7 +96,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               <Wallet className="h-8 w-8" />
             </div>
             <div className="text-right min-w-0">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/60">Saldo Disponível</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/60">Saldo do Mês (Concluído)</span>
               <p className={cn("text-3xl sm:text-4xl font-display font-black mt-1 truncate", totalBalance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
                 {formatCurrency(totalBalance)}
               </p>

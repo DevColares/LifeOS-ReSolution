@@ -178,17 +178,6 @@ export default function FinanceView({ transactions, setTransactions, categories 
 
     const monthlyBalance = totalIncome - totalExpense;
 
-    const accumulatedBalance = useMemo(() => {
-        return transactions
-            .filter(t => t.isCompleted)
-            .filter(t => {
-                const tDate = new Date(t.date + 'T12:00:00');
-                const endOfMonth = new Date(viewingYear, viewingMonth + 1, 0, 23, 59, 59);
-                return tDate <= endOfMonth;
-            })
-            .reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
-    }, [transactions, viewingMonth, viewingYear]);
-
     // General Report Logic (All transactions, even pending)
     const reportTotalIncome = monthlyTransactions
         .filter(t => t.type === 'income')
@@ -266,12 +255,9 @@ export default function FinanceView({ transactions, setTransactions, categories 
                         <Wallet className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Saldo Global (Acumulado)</p>
-                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", accumulatedBalance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
-                            {formatCurrency(accumulatedBalance)}
-                        </p>
-                        <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-tighter">
-                            Saldo do mês: <span className={monthlyBalance >= 0 ? "text-success" : "text-destructive"}>{formatCurrency(monthlyBalance)}</span>
+                        <p className="text-sm font-medium text-slate-600 dark:text-muted-foreground">Saldo do Mês (Concluído)</p>
+                        <p className={cn("text-xl md:text-2xl font-display font-black leading-none mt-1 truncate", monthlyBalance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
+                            {formatCurrency(monthlyBalance)}
                         </p>
                     </div>
                 </div>
@@ -371,8 +357,9 @@ export default function FinanceView({ transactions, setTransactions, categories 
                             <DialogTitle className="text-slate-950 dark:text-white">Relatório Geral: {monthNames[viewingMonth]} {viewingYear}</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
+                            {/* Charts and Summary Section */}
                             <div className="space-y-4">
-                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground">Visão Comparativa (Total Lançado)</h4>
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground">Visão Comparativa (Lançado)</h4>
                                 <div className="space-y-3">
                                     <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-3">
                                         <div className="flex justify-between items-center">
@@ -409,7 +396,7 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                             <span className="text-sm font-bold text-slate-900 dark:text-white">Resumo do Mês ({monthNames[viewingMonth]})</span>
                                         </div>
                                         <div className="flex justify-between items-center pl-4 border-l-2 border-primary/30">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Saldo Realizado (Já entrou/saiu)</span>
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Saldo Realizado (Mês)</span>
                                             <span className={cn("text-sm font-black", reportRealizedBalance >= 0 ? "text-success" : "text-destructive")}>
                                                 {formatCurrency(reportRealizedBalance)}
                                             </span>
@@ -425,25 +412,11 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                             <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
                                         </div>
                                     </div>
-
-                                    <div className={cn(
-                                        "p-4 rounded-2xl border flex justify-between items-center",
-                                        accumulatedBalance >= 0
-                                            ? "bg-success/10 border-success/30"
-                                            : "bg-destructive/10 border-destructive/30"
-                                    )}>
-                                        <div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Global Acumulado</span>
-                                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Até o final de {monthNames[viewingMonth]} (apenas concluídos)</p>
-                                        </div>
-                                        <span className={cn("font-display font-black text-lg", accumulatedBalance >= 0 ? "text-success" : "text-destructive")}>
-                                            {formatCurrency(accumulatedBalance)}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-4 text-center">
-                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground text-left ml-2">Distribuição de Gastos</h4>
+                            
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground ml-2">Distribuição de Gastos</h4>
                                 <div className="h-[200px] w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
@@ -471,6 +444,59 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                             <span className="text-[10px] font-bold text-muted-foreground">{entry.name}</span>
                                         </div>
                                     ))}
+                                </div>
+                                
+                                {/* Auditoria Section Inside Modal */}
+                                <div className="pt-6 space-y-4 border-t border-slate-100 dark:border-white/5 overflow-y-auto max-h-[300px] pr-2 no-scrollbar">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-orange-500 flex items-center gap-2 sticky top-0 bg-background/95 dark:bg-slate-950/95 py-2 z-10">
+                                        <Calendar className="h-3 w-3" />
+                                        Lançamentos Pendentes ({monthNames[viewingMonth]})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {monthlyTransactions.filter(t => !t.isCompleted).length === 0 ? (
+                                            <p className="text-[10px] text-muted-foreground italic ml-2">Nenhum pendente.</p>
+                                        ) : (
+                                            monthlyTransactions
+                                                .filter(t => !t.isCompleted)
+                                                .sort((a, b) => a.date.localeCompare(b.date))
+                                                .map(t => (
+                                                    <div key={t.id} className="flex justify-between items-center p-2 px-3 rounded-lg bg-secondary/30 border border-slate-200 dark:border-white/5 group">
+                                                        <div className="min-w-0">
+                                                            <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
+                                                            <p className="text-[8px] text-slate-500 uppercase font-black">{t.category} • {format(new Date(t.date + 'T12:00:00'), 'dd/MM')}</p>
+                                                        </div>
+                                                        <span className={cn("text-[10px] font-bold", t.type === 'income' ? "text-success" : "text-destructive")}>
+                                                            {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                        )}
+                                    </div>
+
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-success flex items-center gap-2 pt-4 sticky top-0 bg-background/95 dark:bg-slate-950/95 py-2 z-10">
+                                        <Check className="h-3 w-3" />
+                                        Lançamentos Concluídos
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {monthlyTransactions.filter(t => t.isCompleted).length === 0 ? (
+                                            <p className="text-[10px] text-muted-foreground italic ml-2">Nenhum concluído ainda.</p>
+                                        ) : (
+                                            monthlyTransactions
+                                                .filter(t => t.isCompleted)
+                                                .sort((a, b) => b.date.localeCompare(a.date))
+                                                .map(t => (
+                                                    <div key={t.id} className="flex justify-between items-center p-2 px-3 rounded-lg bg-success/5 border border-success/10 group">
+                                                        <div className="min-w-0">
+                                                            <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
+                                                            <p className="text-[8px] text-slate-500 uppercase font-black">{t.category} • {format(new Date(t.date + 'T12:00:00'), 'dd/MM')}</p>
+                                                        </div>
+                                                        <span className={cn("text-[10px] font-bold", t.type === 'income' ? "text-success" : "text-destructive")}>
+                                                            {formatCurrency(t.value)}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
