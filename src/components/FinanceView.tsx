@@ -198,6 +198,9 @@ export default function FinanceView({ transactions, setTransactions, categories 
         .filter(t => t.type === 'expense')
         .reduce((acc, t) => acc + t.value, 0);
 
+    const reportPendingIncome = reportTotalIncome - totalIncome;
+    const reportPendingExpense = reportTotalExpense - totalExpense;
+
     const filteredTransactions = monthlyTransactions.filter(t => {
         if (filter === 'all') return true;
         return t.type === filter;
@@ -368,16 +371,38 @@ export default function FinanceView({ transactions, setTransactions, categories 
                             <div className="space-y-4">
                                 <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground">Visão Comparativa (Total Lançado)</h4>
                                 <div className="space-y-3">
-                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 flex justify-between items-center">
-                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Entradas</span>
-                                        <span className="font-display font-black text-success">{formatCurrency(reportTotalIncome)}</span>
+                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Entradas</span>
+                                            <span className="font-display font-black text-success">{formatCurrency(reportTotalIncome)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-4 border-l-2 border-success/30 pb-1">
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Já Recebido</span>
+                                            <span className="text-xs font-black text-success/80">{formatCurrency(totalIncome)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-4 border-l-2 border-orange-500/30">
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Ainda por Entrar</span>
+                                            <span className="text-xs font-black text-orange-500">{formatCurrency(reportPendingIncome)}</span>
+                                        </div>
                                     </div>
-                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 flex justify-between items-center">
-                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Saídas</span>
-                                        <span className="font-display font-black text-destructive">{formatCurrency(reportTotalExpense)}</span>
+
+                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Saídas</span>
+                                            <span className="font-display font-black text-destructive">{formatCurrency(reportTotalExpense)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-4 border-l-2 border-destructive/30 pb-1">
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Já Pago</span>
+                                            <span className="text-xs font-black text-destructive/80">{formatCurrency(totalExpense)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-4 border-l-2 border-orange-500/30">
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Ainda por Sair</span>
+                                            <span className="text-xs font-black text-orange-500">{formatCurrency(reportPendingExpense)}</span>
+                                        </div>
                                     </div>
+
                                     <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex justify-between items-center">
-                                        <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Planejado</span>
+                                        <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Planejado (Final)</span>
                                         <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
                                     </div>
                                     <div className={cn(
@@ -449,7 +474,7 @@ export default function FinanceView({ transactions, setTransactions, categories 
                             className={cn(
                                 "flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
                                 type === 'income' 
-                                    ? "bg-bg-success/20 text-success shadow-lg shadow-success/10 border border-success/20" 
+                                    ? "bg-success/20 text-success shadow-lg shadow-success/10 border border-success/20" 
                                     : "text-slate-500 hover:text-slate-300"
                             )}
                         >

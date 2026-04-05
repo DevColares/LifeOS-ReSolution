@@ -40,7 +40,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
     transactions
       .filter(t => t.type === 'expense' && t.isCompleted)
       .filter(t => {
-        const d = new Date(t.date);
+        const d = new Date(t.date + 'T12:00:00');
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       })
       .forEach(t => {
