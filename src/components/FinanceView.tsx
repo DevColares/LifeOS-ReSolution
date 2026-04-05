@@ -357,59 +357,69 @@ export default function FinanceView({ transactions, setTransactions, categories 
                             <DialogTitle className="text-slate-950 dark:text-white">Relatório Geral: {monthNames[viewingMonth]} {viewingYear}</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
-                            {/* Charts and Summary Section */}
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground">Visão Comparativa (Lançado)</h4>
-                                <div className="space-y-3">
-                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-3">
+                            {/* Single Master Cash Flow Summary Card */}
+                            <div className="space-y-6">
+                                <div className="p-6 rounded-[2rem] bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-6">
+                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground flex items-center gap-2">
+                                        <Wallet className="h-4 w-4 text-primary" />
+                                        Resumo Geral de Caixa
+                                    </h4>
+                                    
+                                    {/* Entradas Row */}
+                                    <div className="space-y-2">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Entradas</span>
+                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Entradas Totais</span>
                                             <span className="font-display font-black text-success">{formatCurrency(reportTotalIncome)}</span>
                                         </div>
-                                        <div className="flex justify-between items-center pl-4 border-l-2 border-success/30 pb-1">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Já Recebido</span>
-                                            <span className="text-xs font-black text-success/80">{formatCurrency(totalIncome)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center pl-4 border-l-2 border-orange-500/30">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Ainda por Entrar</span>
-                                            <span className="text-xs font-black text-orange-500">{formatCurrency(reportPendingIncome)}</span>
+                                        <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-success/30 pb-2">
+                                            <div>
+                                                <p className="text-[9px] font-bold uppercase text-slate-500">Já Recebido</p>
+                                                <p className="text-xs font-black text-success/80">{formatCurrency(totalIncome)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold uppercase text-slate-500">Ainda por Entrar</p>
+                                                <p className="text-xs font-black text-orange-500">{formatCurrency(reportPendingIncome)}</p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 rounded-2xl bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Total de Saídas</span>
+                                    {/* Saídas Row */}
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-white/5">
+                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Saídas Totais</span>
                                             <span className="font-display font-black text-destructive">{formatCurrency(reportTotalExpense)}</span>
                                         </div>
-                                        <div className="flex justify-between items-center pl-4 border-l-2 border-destructive/30 pb-1">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Já Pago</span>
-                                            <span className="text-xs font-black text-destructive/80">{formatCurrency(totalExpense)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center pl-4 border-l-2 border-orange-500/30">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Ainda por Sair</span>
-                                            <span className="text-xs font-black text-orange-500">{formatCurrency(reportPendingExpense)}</span>
+                                        <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-destructive/30 pb-2">
+                                            <div>
+                                                <p className="text-[9px] font-bold uppercase text-slate-500">Já Pago</p>
+                                                <p className="text-xs font-black text-destructive/80">{formatCurrency(totalExpense)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold uppercase text-slate-500">Ainda por Sair</p>
+                                                <p className="text-xs font-black text-orange-500">{formatCurrency(reportPendingExpense)}</p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 space-y-3">
+                                    {/* Final Summary Row */}
+                                    <div className="pt-4 border-t-2 border-slate-950/5 dark:border-white/5 space-y-4">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Resumo do Mês ({monthNames[viewingMonth]})</span>
-                                        </div>
-                                        <div className="flex justify-between items-center pl-4 border-l-2 border-primary/30">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Saldo Realizado (Mês)</span>
-                                            <span className={cn("text-sm font-black", reportRealizedBalance >= 0 ? "text-success" : "text-destructive")}>
+                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Realizado (Hoje)</span>
+                                            <span className={cn("text-lg font-display font-black leading-none", reportRealizedBalance >= 0 ? "text-success" : "text-destructive")}>
                                                 {formatCurrency(reportRealizedBalance)}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-center pl-4 border-l-2 border-orange-500/30">
-                                            <span className="text-[10px] font-bold uppercase text-slate-500">Saldo Pendente (Ainda por vir)</span>
-                                            <span className={cn("text-sm font-black", reportPendingBalance >= 0 ? "text-orange-500" : "text-destructive/80")}>
-                                                {formatCurrency(reportPendingBalance)}
-                                            </span>
-                                        </div>
-                                        <div className="pt-2 mt-2 border-t border-primary/10 flex justify-between items-center">
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Final Previsto (Mês)</span>
-                                            <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
+                                        <div className="flex justify-between items-center p-4 rounded-2xl bg-primary/10 border border-primary/20">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-black uppercase text-primary/60">Saldo Final do Mês (Previsto)</p>
+                                                <p className="text-base font-display font-black text-slate-950 dark:text-white mt-0.5 truncate">{formatCurrency(reportTotalIncome - reportTotalExpense)}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[8px] font-bold uppercase text-slate-500">Pendente Total</p>
+                                                <p className={cn("text-xs font-black", reportPendingBalance >= 0 ? "text-orange-500" : "text-destructive/80")}>
+                                                    {reportPendingBalance >= 0 ? '+' : ''}{formatCurrency(reportPendingBalance)}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
