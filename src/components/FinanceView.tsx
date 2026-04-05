@@ -3,7 +3,7 @@ import { Transaction } from "@/lib/types";
 import {
     Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar,
     DollarSign, Check, ChevronLeft, ChevronRight, BarChart3, Repeat,
-    Tag, ArrowUp, ArrowDown
+    Tag, ArrowUp, ArrowDown, Edit2, ArrowUpDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -14,6 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import {
     AlertDialog,
@@ -42,6 +43,7 @@ const defaultCategories = {
 };
 
 export default function FinanceView({ transactions, setTransactions, categories }: FinanceViewProps) {
+    // Add Form State
     const [description, setDescription] = useState("");
     const [value, setValue] = useState("");
     const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -49,6 +51,14 @@ export default function FinanceView({ transactions, setTransactions, categories 
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
     const [repeatCount, setRepeatCount] = useState("1");
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
+    // Edit State
+    const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [editDesc, setEditDesc] = useState("");
+    const [editValue, setEditValue] = useState("");
+    const [editCategory, setEditCategory] = useState("");
+    const [editDate, setEditDate] = useState("");
 
     // Month selection state
     const [viewingMonth, setViewingMonth] = useState(new Date().getMonth());
@@ -111,6 +121,31 @@ export default function FinanceView({ transactions, setTransactions, categories 
         setDescription("");
         setValue("");
         setRepeatCount("1");
+    };
+
+    const handleEdit = (t: Transaction) => {
+        setEditingTransaction(t);
+        setEditDesc(t.description);
+        setEditValue(t.value.toString());
+        setEditCategory(t.category);
+        setEditDate(t.date);
+    };
+
+    const saveEdit = () => {
+        if (!editingTransaction || !editDesc || !editValue) return;
+        
+        setTransactions(prev => prev.map(t => 
+            t.id === editingTransaction.id 
+                ? { 
+                    ...t, 
+                    description: editDesc, 
+                    value: parseFloat(editValue), 
+                    category: editCategory, 
+                    date: editDate 
+                  } 
+                : t
+        ));
+        setEditingTransaction(null);
     };
 
     const deleteTransaction = (id: string) => {
@@ -187,10 +222,17 @@ export default function FinanceView({ transactions, setTransactions, categories 
     const reportRealizedBalance = totalIncome - totalExpense;
     const reportPendingBalance = reportPendingIncome - reportPendingExpense;
 
-    const filteredTransactions = monthlyTransactions.filter(t => {
-        if (filter === 'all') return true;
-        return t.type === filter;
-    }).sort((a, b) => b.date.localeCompare(a.date));
+    const filteredTransactions = useMemo(() => {
+        return monthlyTransactions
+            .filter(t => {
+                if (filter === 'all') return true;
+                return t.type === filter;
+            })
+            .sort((a, b) => {
+                if (sortOrder === 'desc') return b.date.localeCompare(a.date);
+                return a.date.localeCompare(b.date);
+            });
+    }, [monthlyTransactions, filter, sortOrder]);
 
     const dailyData = useMemo(() => {
         const days: Record<string, { date: string, income: number, expense: number }> = {};
@@ -270,7 +312,7 @@ export default function FinanceView({ transactions, setTransactions, categories 
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-xl border-white/10">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
+                            <DialogTitle className="flex items-center gap-2 text-slate-950 dark:text-white">
                                 <TrendingUp className="h-5 w-5 text-success" />
                                 Resumo de Entradas - {monthNames[viewingMonth]}
                             </DialogTitle>
@@ -310,7 +352,7 @@ export default function FinanceView({ transactions, setTransactions, categories 
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-xl border-white/10">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
+                            <DialogTitle className="flex items-center gap-2 text-slate-950 dark:text-white">
                                 <TrendingDown className="h-5 w-5 text-destructive" />
                                 Resumo de Saídas - {monthNames[viewingMonth]}
                             </DialogTitle>
@@ -582,25 +624,35 @@ export default function FinanceView({ transactions, setTransactions, categories 
             {/* Transactions List */}
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <h3 className="text-xl font-display font-bold">Transações de {monthNames[viewingMonth]}</h3>
-                    <div className="flex gap-2 bg-secondary/30 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <h3 className="text-xl font-display font-black">Transações de {monthNames[viewingMonth]}</h3>
+                    <div className="flex flex-wrap gap-2 bg-secondary/30 p-1 rounded-xl w-full sm:w-auto">
+                        <div className="flex gap-1 pr-2 border-r border-slate-200 dark:border-white/10 mr-1">
+                            <button
+                                onClick={() => setFilter('all')}
+                                className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'all' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setFilter('income')}
+                                className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'income' ? "bg-success/10 text-success shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                            >
+                                Entradas
+                            </button>
+                            <button
+                                onClick={() => setFilter('expense')}
+                                className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", filter === 'expense' ? "bg-destructive/10 text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                            >
+                                Saídas
+                            </button>
+                        </div>
+                        
                         <button
-                            onClick={() => setFilter('all')}
-                            className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap", filter === 'all' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all bg-primary/10 text-primary hover:bg-primary/20"
                         >
-                            Todos
-                        </button>
-                        <button
-                            onClick={() => setFilter('income')}
-                            className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap", filter === 'income' ? "bg-success/10 text-success shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                        >
-                            Entradas
-                        </button>
-                        <button
-                            onClick={() => setFilter('expense')}
-                            className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap", filter === 'expense' ? "bg-destructive/10 text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                        >
-                            Saídas
+                            <ArrowUpDown className="h-3 w-3" />
+                            {sortOrder === 'desc' ? 'Mais recente' : 'Mais antigo'}
                         </button>
                     </div>
                 </div>
@@ -634,16 +686,24 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+                                <div className="flex items-center gap-3 sm:gap-6 shrink-0">
                                     <p className={cn("font-display font-black text-base sm:text-lg", t.isCompleted ? (t.type === 'income' ? "text-success" : "text-destructive") : "text-muted-foreground/40")}>
                                         {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
                                     </p>
-                                    <button
-                                        onClick={() => deleteTransaction(t.id)}
-                                        className="p-2 rounded-xl hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive transition-all opacity-0 group-hover:opacity-100"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all capitalize">
+                                        <button
+                                            onClick={() => handleEdit(t)}
+                                            className="p-2 rounded-xl hover:bg-primary/10 text-muted-foreground/40 hover:text-primary transition-all"
+                                        >
+                                            <Edit2 className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => deleteTransaction(t.id)}
+                                            className="p-2 rounded-xl hover:bg-destructive/10 text-muted-foreground/40 hover:text-destructive transition-all"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))
@@ -651,6 +711,70 @@ export default function FinanceView({ transactions, setTransactions, categories 
                 </div>
             </div>
 
+            {/* Edit Transaction Dialog */}
+            <Dialog open={!!editingTransaction} onOpenChange={(open) => !open && setEditingTransaction(null)}>
+                <DialogContent className="max-w-xl bg-background/95 backdrop-blur-xl border-slate-200 dark:border-white/10">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-display font-black">Editar Lançamento</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Descrição</label>
+                            <input
+                                value={editDesc}
+                                onChange={(e) => setEditDesc(e.target.value)}
+                                className="w-full bg-secondary/30 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Valor (R$)</label>
+                            <input
+                                type="number"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                className="w-full bg-secondary/30 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Data</label>
+                            <input
+                                type="date"
+                                value={editDate}
+                                onChange={(e) => setEditDate(e.target.value)}
+                                className="w-full bg-secondary/30 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Categoria</label>
+                            <select
+                                value={editCategory}
+                                onChange={(e) => setEditCategory(e.target.value)}
+                                className="w-full bg-secondary/30 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-bold outline-none"
+                            >
+                                {editingTransaction && categories[editingTransaction.type].map((cat: string) => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <button
+                            onClick={() => setEditingTransaction(null)}
+                            className="px-6 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-secondary transition-all"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={saveEdit}
+                            className="px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:scale-105 transition-all"
+                        >
+                            Salvar Alterações
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Alert Dialog */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="bg-background/95 backdrop-blur-xl border-slate-200 dark:border-white/10">
                     <AlertDialogHeader>
