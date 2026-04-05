@@ -1,10 +1,11 @@
 import { Habit, Goal, Transaction } from "@/lib/types";
-import { Flame, Target, CheckCircle2, User, Wallet, PieChart as PieChartIcon } from "lucide-react";
+import { Flame, Target, CheckCircle2, User, Wallet, PieChart as PieChartIcon, ArrowUp, ArrowDown } from "lucide-react";
 import { useMemo } from "react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
 } from 'recharts';
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface DashboardProps {
   habits: Habit[];
@@ -30,6 +31,14 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
       return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
     })
     .reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
+
+  const pendingTransactions = transactions
+    .filter(t => !t.isCompleted)
+    .filter(t => {
+      const d = new Date(t.date + 'T12:00:00');
+      return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -183,6 +192,51 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Financial Pendencies Section */}
+      <div className="glass-card p-8 rounded-[2.5rem] border-slate-200 dark:border-white/5 bg-secondary/30 dark:bg-card/40 backdrop-blur-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-display font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            Pendências Financeiras do Mês
+          </h3>
+          <span className="text-[10px] font-black uppercase bg-primary/10 text-primary px-3 py-1 rounded-full">
+            {pendingTransactions.length} Itens
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+          {pendingTransactions.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-10 text-center space-y-2 opacity-40">
+              <CheckCircle2 className="h-8 w-8 text-success" />
+              <p className="text-sm font-bold italic">Nada pendente! Suas finanças estão em dia.</p>
+            </div>
+          ) : (
+            pendingTransactions.map((t) => (
+              <div key={t.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group transition-all hover:border-primary/20">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={cn(
+                    "p-2 rounded-lg",
+                    t.type === 'income' ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                  )}>
+                    {t.type === 'income' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate uppercase mt-0.5 tracking-tight">{t.description}</p>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase">{t.category} • {format(new Date(t.date + 'T12:00:00'), 'dd/MM')}</p>
+                  </div>
+                </div>
+                <p className={cn(
+                  "text-xs font-display font-black",
+                  t.type === 'income' ? "text-success" : "text-destructive"
+                )}>
+                  {t.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value)}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       <div className="glass-card p-8">

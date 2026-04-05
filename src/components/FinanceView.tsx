@@ -489,46 +489,6 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                         </div>
                                     ))}
                                 </div>
-
-                                {/* Resumo Diário por Data */}
-                                <div className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-4">
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground ml-2">Resumo por Data</h4>
-                                    <div className="bg-secondary/20 rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden">
-                                        <div className="max-h-[250px] overflow-y-auto no-scrollbar">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead className="sticky top-0 bg-secondary/90 backdrop-blur-md z-10">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Data</th>
-                                                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-success text-right">Entradas</th>
-                                                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-destructive text-right">Saídas</th>
-                                                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-primary text-right">Saldo</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                                    {dailyData.length === 0 ? (
-                                                        <tr>
-                                                            <td colSpan={4} className="px-4 py-8 text-center text-xs text-muted-foreground italic">Nenhuma movimentação este mês.</td>
-                                                        </tr>
-                                                    ) : (
-                                                        dailyData.map((day) => {
-                                                            const dayBalance = day.income - day.expense;
-                                                            return (
-                                                                <tr key={day.date} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                                    <td className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">Dia {day.date}</td>
-                                                                    <td className="px-4 py-2.5 text-xs font-black text-success text-right">{day.income > 0 ? formatCurrency(day.income) : "—"}</td>
-                                                                    <td className="px-4 py-2.5 text-xs font-black text-destructive text-right">{day.expense > 0 ? formatCurrency(day.expense) : "—"}</td>
-                                                                    <td className={cn("px-4 py-2.5 text-xs font-black text-right", dayBalance >= 0 ? "text-primary" : "text-destructive/80")}>
-                                                                        {formatCurrency(dayBalance)}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </DialogContent>
