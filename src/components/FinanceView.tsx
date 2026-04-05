@@ -131,11 +131,9 @@ export default function FinanceView({ transactions, setTransactions, categories 
         if (!transactionToDelete) return;
 
         if (deleteAll) {
-            // If it has groupId, use it. Otherwise fall back to description matching for older entries
             if (transactionToDelete.groupId) {
                 setTransactions(prev => prev.filter(t => t.groupId !== transactionToDelete.groupId));
             } else {
-                // Fuzzy match for transactions created before groupId was added
                 const baseDescription = transactionToDelete.description.replace(/\s\(\d+\/\d+\)$/, "");
                 setTransactions(prev => prev.filter(t => {
                     const tBase = t.description.replace(/\s\(\d+\/\d+\)$/, "");
@@ -158,16 +156,13 @@ export default function FinanceView({ transactions, setTransactions, categories 
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     };
 
-    // Filter transactions for the selected month
     const monthlyTransactions = useMemo(() => {
         return transactions.filter(t => {
-            // Use UTC to avoid timezone shifts that can change the month
             const tDate = new Date(t.date + 'T12:00:00');
             return tDate.getMonth() === viewingMonth && tDate.getFullYear() === viewingYear;
         });
     }, [transactions, viewingMonth, viewingYear]);
 
-    // Totals for top cards (only completed)
     const totalIncome = monthlyTransactions
         .filter(t => t.type === 'income' && t.isCompleted)
         .reduce((acc, t) => acc + t.value, 0);
@@ -178,7 +173,6 @@ export default function FinanceView({ transactions, setTransactions, categories 
 
     const monthlyBalance = totalIncome - totalExpense;
 
-    // General Report Logic (All transactions, even pending)
     const reportTotalIncome = monthlyTransactions
         .filter(t => t.type === 'income')
         .reduce((acc, t) => acc + t.value, 0);
@@ -198,7 +192,6 @@ export default function FinanceView({ transactions, setTransactions, categories 
         return t.type === filter;
     }).sort((a, b) => b.date.localeCompare(a.date));
 
-    // Graph data: Transactions grouped by day
     const dailyData = useMemo(() => {
         const days: Record<string, { date: string, income: number, expense: number }> = {};
         monthlyTransactions.forEach(t => {
@@ -210,7 +203,6 @@ export default function FinanceView({ transactions, setTransactions, categories 
         return Object.values(days).sort((a, b) => a.date.localeCompare(b.date));
     }, [monthlyTransactions]);
 
-    // Pie chart data: Transactions grouped by category
     const categoryData = useMemo(() => {
         const cats: Record<string, number> = {};
         monthlyTransactions.filter(t => t.type === 'expense').forEach(t => {
@@ -454,59 +446,6 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                             <span className="text-[10px] font-bold text-muted-foreground">{entry.name}</span>
                                         </div>
                                     ))}
-                                </div>
-                                
-                                {/* Auditoria Section Inside Modal */}
-                                <div className="pt-6 space-y-4 border-t border-slate-100 dark:border-white/5 overflow-y-auto max-h-[300px] pr-2 no-scrollbar">
-                                    <h4 className="text-xs font-black uppercase tracking-widest text-orange-500 flex items-center gap-2 sticky top-0 bg-background/95 dark:bg-slate-950/95 py-2 z-10">
-                                        <Calendar className="h-3 w-3" />
-                                        Lançamentos Pendentes ({monthNames[viewingMonth]})
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {monthlyTransactions.filter(t => !t.isCompleted).length === 0 ? (
-                                            <p className="text-[10px] text-muted-foreground italic ml-2">Nenhum pendente.</p>
-                                        ) : (
-                                            monthlyTransactions
-                                                .filter(t => !t.isCompleted)
-                                                .sort((a, b) => a.date.localeCompare(b.date))
-                                                .map(t => (
-                                                    <div key={t.id} className="flex justify-between items-center p-2 px-3 rounded-lg bg-secondary/30 border border-slate-200 dark:border-white/5 group">
-                                                        <div className="min-w-0">
-                                                            <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
-                                                            <p className="text-[8px] text-slate-500 uppercase font-black">{t.category} • {format(new Date(t.date + 'T12:00:00'), 'dd/MM')}</p>
-                                                        </div>
-                                                        <span className={cn("text-[10px] font-bold", t.type === 'income' ? "text-success" : "text-destructive")}>
-                                                            {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
-                                                        </span>
-                                                    </div>
-                                                ))
-                                        )}
-                                    </div>
-
-                                    <h4 className="text-xs font-black uppercase tracking-widest text-success flex items-center gap-2 pt-4 sticky top-0 bg-background/95 dark:bg-slate-950/95 py-2 z-10">
-                                        <Check className="h-3 w-3" />
-                                        Lançamentos Concluídos
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {monthlyTransactions.filter(t => t.isCompleted).length === 0 ? (
-                                            <p className="text-[10px] text-muted-foreground italic ml-2">Nenhum concluído ainda.</p>
-                                        ) : (
-                                            monthlyTransactions
-                                                .filter(t => t.isCompleted)
-                                                .sort((a, b) => b.date.localeCompare(a.date))
-                                                .map(t => (
-                                                    <div key={t.id} className="flex justify-between items-center p-2 px-3 rounded-lg bg-success/5 border border-success/10 group">
-                                                        <div className="min-w-0">
-                                                            <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{t.description}</p>
-                                                            <p className="text-[8px] text-slate-500 uppercase font-black">{t.category} • {format(new Date(t.date + 'T12:00:00'), 'dd/MM')}</p>
-                                                        </div>
-                                                        <span className={cn("text-[10px] font-bold", t.type === 'income' ? "text-success" : "text-destructive")}>
-                                                            {formatCurrency(t.value)}
-                                                        </span>
-                                                    </div>
-                                                ))
-                                        )}
-                                    </div>
                                 </div>
                             </div>
                         </div>
