@@ -201,6 +201,9 @@ export default function FinanceView({ transactions, setTransactions, categories 
     const reportPendingIncome = reportTotalIncome - totalIncome;
     const reportPendingExpense = reportTotalExpense - totalExpense;
 
+    const reportRealizedBalance = totalIncome - totalExpense;
+    const reportPendingBalance = reportPendingIncome - reportPendingExpense;
+
     const filteredTransactions = monthlyTransactions.filter(t => {
         if (filter === 'all') return true;
         return t.type === filter;
@@ -401,10 +404,28 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                         </div>
                                     </div>
 
-                                    <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 flex justify-between items-center">
-                                        <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Planejado (Final)</span>
-                                        <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
+                                    <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Resumo do Mês ({monthNames[viewingMonth]})</span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-4 border-l-2 border-primary/30">
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Saldo Realizado (Já entrou/saiu)</span>
+                                            <span className={cn("text-sm font-black", reportRealizedBalance >= 0 ? "text-success" : "text-destructive")}>
+                                                {formatCurrency(reportRealizedBalance)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center pl-4 border-l-2 border-orange-500/30">
+                                            <span className="text-[10px] font-bold uppercase text-slate-500">Saldo Pendente (Ainda por vir)</span>
+                                            <span className={cn("text-sm font-black", reportPendingBalance >= 0 ? "text-orange-500" : "text-destructive/80")}>
+                                                {formatCurrency(reportPendingBalance)}
+                                            </span>
+                                        </div>
+                                        <div className="pt-2 mt-2 border-t border-primary/10 flex justify-between items-center">
+                                            <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Final Previsto (Mês)</span>
+                                            <span className="font-display font-black text-slate-950 dark:text-white">{formatCurrency(reportTotalIncome - reportTotalExpense)}</span>
+                                        </div>
                                     </div>
+
                                     <div className={cn(
                                         "p-4 rounded-2xl border flex justify-between items-center",
                                         accumulatedBalance >= 0
@@ -413,7 +434,7 @@ export default function FinanceView({ transactions, setTransactions, categories 
                                     )}>
                                         <div>
                                             <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Global Acumulado</span>
-                                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Até {monthNames[viewingMonth]} {viewingYear} (apenas concluídos)</p>
+                                            <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Até o final de {monthNames[viewingMonth]} (apenas concluídos)</p>
                                         </div>
                                         <span className={cn("font-display font-black text-lg", accumulatedBalance >= 0 ? "text-success" : "text-destructive")}>
                                             {formatCurrency(accumulatedBalance)}
