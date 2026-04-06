@@ -1,5 +1,5 @@
 import { Habit, Goal, Transaction } from "@/lib/types";
-import { Flame, Target, CheckCircle2, User, Wallet, PieChart as PieChartIcon, ArrowUp, ArrowDown } from "lucide-react";
+import { Flame, Target, CheckCircle2, User, Wallet, PieChart as PieChartIcon, ArrowUp, ArrowDown, Calendar } from "lucide-react";
 import { useMemo } from "react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
@@ -19,222 +19,220 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
   const activeHabits = habits.length;
   const goalsInProgress = goals.filter(
-    (g) => g.subtasks.some((s) => !s.done) && g.subtasks.some((s) => s.done)
+    (g) => g.subtasks.filter((s) => !s.done).length > 0
   ).length;
 
-  const pendingHabits = habits.filter((h) => h.lastCompleted !== today);
-
-  const totalBalance = transactions
-    .filter(t => t.isCompleted)
-    .filter(t => {
+  const monthTransactions = useMemo(() => {
+    return transactions.filter(t => {
       const d = new Date(t.date + 'T12:00:00');
       return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
-    })
+    });
+  }, [transactions]);
+
+  const totalBalance = monthTransactions
+    .filter(t => t.isCompleted)
     .reduce((acc, t) => t.type === 'income' ? acc + t.value : acc - t.value, 0);
 
-  const pendingTransactions = transactions
-    .filter(t => !t.isCompleted)
-    .filter(t => {
-      const d = new Date(t.date + 'T12:00:00');
-      return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
-    })
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const dailyData = useMemo(() => {
+    const days: Record<string, { date: string, income: number, expense: number }> = {};
+    monthTransactions.forEach(t => {
+      const day = t.date.split('-')[2];
+      if (!days[day]) days[day] = { date: day, income: 0, expense: 0 };
+      if (t.type === 'income') days[day].income += t.value;
+      else days[day].expense += t.value;
+    });
+    return days;
+  }, [monthTransactions]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  // Pie chart data for dashboard (top categories)
-  const categoryData = useMemo(() => {
-    const cats: Record<string, number> = {};
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+  const pendingHabits = habits.filter((h) => !h.completedDates.includes(today));
 
-    transactions
-      .filter(t => t.type === 'expense' && t.isCompleted)
-      .filter(t => {
-        const d = new Date(t.date + 'T12:00:00');
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      })
-      .forEach(t => {
-        cats[t.category] = (cats[t.category] || 0) + t.value;
-      });
-
-    return Object.entries(cats)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  }, [transactions]);
-
-  const COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
-
-  const bottomCards = [
-    { label: "Hábitos Ativos", value: activeHabits, icon: Flame, color: "text-streak", bg: "bg-streak/10" },
+  const stats = [
+    { label: "Saldo do Mês", value: formatCurrency(totalBalance), icon: Wallet, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Hábitos para Hoje", value: pendingHabits.length, icon: Flame, color: "text-streak", bg: "bg-streak/10" },
     { label: "Metas em Progresso", value: goalsInProgress, icon: Target, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Concluídos Hoje", value: habits.length - pendingHabits.length, icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
   ];
 
+  const categoryTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    monthTransactions.filter(t => t.type === 'expense').forEach(t => {
+      totals[t.category] = (totals[t.category] || 0) + t.value;
+    });
+    return Object.entries(totals).map(([name, value]) => ({ name, value }));
+  }, [monthTransactions]);
+
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f', '#ffbb28'];
+
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Discreet Profile Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-1">
-          <h2 className="text-4xl font-display font-black tracking-tight mb-2 text-slate-950 dark:text-white">Painel</h2>
-          <p className="text-slate-600 dark:text-primary/60 text-lg">Seu dia organizado em um só lugar.</p>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl lg:text-5xl font-display font-black tracking-tight text-slate-950 dark:text-white">
+            Olá, {userProfile.name}
+          </h1>
+          <p className="text-slate-600 dark:text-muted-foreground text-lg lg:text-xl font-medium">
+            Seu LifeOS está pronto para mais um dia de conquistas.
+          </p>
         </div>
-
-        <div className="flex items-center gap-3 bg-secondary/30 p-2 pr-4 rounded-2xl border border-white/10 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 overflow-hidden flex items-center justify-center border border-primary/20">
-            {userProfile.photo ? (
-              <img src={userProfile.photo} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <User className="h-5 w-5 text-primary" />
-            )}
+        <div className="flex items-center gap-4 bg-secondary/30 p-2 pr-6 rounded-full border border-slate-200 dark:border-white/10 self-start md:self-center">
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary shadow-lg shadow-primary/20">
+            <img src={userProfile.photo} alt="Profile" className="w-full h-full object-cover" />
           </div>
-          <span className="text-xs sm:text-sm font-bold tracking-tight pr-1 sm:pr-0 text-slate-900 dark:text-white">{userProfile.name}</span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-primary">Nível 24</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">Master Architect</p>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Top Section: Balance + Graph */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-card p-8 flex flex-col justify-between min-h-[220px] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl" />
-
-          <div className="flex justify-between items-start relative z-10">
-            <div className="p-4 rounded-2xl bg-primary/10 text-primary shrink-0">
-              <Wallet className="h-8 w-8" />
-            </div>
-            <div className="text-right min-w-0">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/60">Saldo do Mês (Concluído)</span>
-              <p className={cn("text-3xl sm:text-4xl font-display font-black mt-1 truncate", totalBalance >= 0 ? "text-slate-950 dark:text-white" : "text-destructive")}>
-                {formatCurrency(totalBalance)}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-white/5 relative z-10">
-            <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/50">Entradas (Mês)</p>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-success opacity-40" />
-                <p className="text-lg sm:text-xl font-display font-bold text-success truncate">
-                  {formatCurrency(transactions.filter(t => t.type === 'income' && t.isCompleted && new Date(t.date + 'T12:00:00').getMonth() === new Date().getMonth()).reduce((a, b) => a + b.value, 0))}
-                </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {stats.map((stat) => (
+          <div key={stat.label} className="glass-card p-8 group hover:scale-[1.02] transition-all duration-300">
+            <div className="flex items-center gap-6">
+              <div className={cn("p-4 rounded-[1.25rem] transition-colors duration-300", stat.bg, stat.color)}>
+                <stat.icon className="h-7 w-7" />
               </div>
-            </div>
-            <div className="space-y-1 px-4 border-l border-slate-100 dark:border-white/5">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground/50">Saídas (Mês)</p>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-destructive opacity-40" />
-                <p className="text-lg sm:text-xl font-display font-bold text-destructive truncate">
-                  {formatCurrency(transactions.filter(t => t.type === 'expense' && t.isCompleted && new Date(t.date + 'T12:00:00').getMonth() === new Date().getMonth()).reduce((a, b) => a + b.value, 0))}
-                </p>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 leading-none">{stat.label}</p>
+                <p className="text-2xl lg:text-3xl font-display font-black leading-none text-slate-950 dark:text-white">{stat.value}</p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card p-6 flex flex-col min-h-[220px]">
-          <div className="flex items-center gap-2 mb-4">
-            <PieChartIcon className="h-4 w-4 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-muted-foreground">Gastos por Categoria</span>
-          </div>
-          <div className="flex-1 flex items-center">
-            <div className="h-[140px] w-[140px] shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={35}
-                    outerRadius={55}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="ml-6 space-y-2 flex-1">
-              {categoryData.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">Nenhum gasto registrado este mês.</p>
-              ) : (
-                categoryData.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                      <span className="text-[10px] font-bold truncate text-slate-600 dark:text-muted-foreground">{entry.name}</span>
-                    </div>
-                    <span className="text-[10px] font-black ml-2 text-slate-900 dark:text-white">{formatCurrency(entry.value)}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section: Habits, Goals, Completion */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {bottomCards.map((card) => (
-          <div key={card.label} className="glass-card p-6 flex items-center gap-5 hover:scale-[1.02] transition-transform min-h-[100px]">
-            <div className={`p-4 rounded-2xl shrink-0 ${card.bg} ${card.color}`}>
-              <card.icon className="h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xl lg:text-3xl font-display font-black leading-none truncate text-slate-950 dark:text-white">{card.value}</p>
-              <p className="text-[10px] font-medium text-slate-500 dark:text-muted-foreground mt-1 uppercase tracking-wider">{card.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Financial Pendencies Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Main Insights Chart */}
+        <div className="lg:col-span-8 glass-card p-8 rounded-[2.5rem] border-slate-200 dark:border-white/5 bg-secondary/30 dark:bg-card/40 backdrop-blur-2xl">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-display font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <PieChartIcon className="h-5 w-5 text-primary" />
+              Distribuição de Gastos do Mês
+            </h3>
+            <div className="flex gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-white/10" />
+            </div>
+          </div>
+          
+          <div className="h-[280px] w-full flex items-center justify-center">
+            {categoryTotals.length === 0 ? (
+              <p className="text-sm text-slate-500 italic">Sem lançamentos este mês.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryTotals}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={110}
+                    paddingAngle={8}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {categoryTotals.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                      borderRadius: '16px', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      fontSize: '12px',
+                      fontWeight: '700'
+                    }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Categories List */}
+        <div className="lg:col-span-4 glass-card p-8 rounded-[2.5rem] border-slate-200 dark:border-white/5 bg-secondary/30 dark:bg-card/40 backdrop-blur-2xl">
+          <h3 className="text-xl font-display font-black mb-6 text-slate-900 dark:text-white">Categorias</h3>
+          <div className="space-y-4">
+            {categoryTotals.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">Nenhum dado.</p>
+            ) : (
+              categoryTotals.slice(0, 5).map((entry, index) => (
+                <div key={entry.name} className="flex items-center justify-between p-3 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                    <span className="text-[10px] font-bold truncate text-slate-600 dark:text-muted-foreground uppercase">{entry.name}</span>
+                  </div>
+                  <span className="text-[10px] font-black ml-2 text-slate-900 dark:text-white">{formatCurrency(entry.value)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Summary Cards Section */}
       <div className="glass-card p-8 rounded-[2.5rem] border-slate-200 dark:border-white/5 bg-secondary/30 dark:bg-card/40 backdrop-blur-2xl">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <h3 className="text-xl font-display font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-primary" />
-            Pendências Financeiras do Mês
+            <Calendar className="h-5 w-5 text-primary" />
+            Fluxo Diário (Cards do Dia)
           </h3>
           <span className="text-[10px] font-black uppercase bg-primary/10 text-primary px-3 py-1 rounded-full">
-            {pendingTransactions.length} Itens
+            {Object.keys(dailyData).length} Dias com Movimento
           </span>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
-          {pendingTransactions.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1 pb-4">
+          {Object.keys(dailyData).length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-10 text-center space-y-2 opacity-40">
               <CheckCircle2 className="h-8 w-8 text-success" />
-              <p className="text-sm font-bold italic">Nada pendente! Suas finanças estão em dia.</p>
+              <p className="text-sm font-bold italic">Nenhuma movimentação registrada este mês.</p>
             </div>
           ) : (
-            pendingTransactions.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group transition-all hover:border-primary/20">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={cn(
-                    "p-2 rounded-lg",
-                    t.type === 'income' ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                  )}>
-                    {t.type === 'income' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+            Object.values(dailyData).sort((a, b) => b.date.localeCompare(a.date)).map((day: any) => {
+              const dayBalance = day.income - day.expense;
+              const d = new Date();
+              const dateStr = `${day.date}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+              
+              return (
+                <div key={day.date} className="p-5 rounded-3xl bg-white/50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-primary/20 transition-all group">
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tighter">{dateStr}</span>
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      dayBalance >= 0 ? "bg-success" : "bg-destructive"
+                    )} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate uppercase mt-0.5 tracking-tight">{t.description}</p>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase">{t.category} • {format(new Date(t.date + 'T12:00:00'), 'dd/MM')}</p>
+                  
+                  <div className="space-y-2">
+                    {day.income > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Entrada</span>
+                        <span className="text-xs font-black text-success">{formatCurrency(day.income)}</span>
+                      </div>
+                    )}
+                    {day.expense > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Saída</span>
+                        <span className="text-xs font-black text-destructive">{formatCurrency(day.expense)}</span>
+                      </div>
+                    )}
+                    <div className="pt-2 mt-2 border-t border-slate-100 dark:border-white/5 flex justify-between items-center">
+                      <span className="text-[9px] font-black text-slate-400 uppercase">Saldo</span>
+                      <span className={cn("text-sm font-display font-black", dayBalance >= 0 ? "text-slate-900 dark:text-white" : "text-destructive/80")}>
+                        {formatCurrency(dayBalance)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <p className={cn(
-                  "text-xs font-display font-black",
-                  t.type === 'income' ? "text-success" : "text-destructive"
-                )}>
-                  {t.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.value)}
-                </p>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
