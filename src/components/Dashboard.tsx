@@ -36,7 +36,8 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
 
   const dailyData = useMemo(() => {
     const days: Record<string, { date: string, income: number, expense: number }> = {};
-    monthTransactions.forEach(t => {
+    // ONLY PENDING TRANSACTIONS
+    monthTransactions.filter(t => !t.isCompleted).forEach(t => {
       const day = t.date.split('-')[2];
       if (!days[day]) days[day] = { date: day, income: 0, expense: 0 };
       if (t.type === 'income') days[day].income += t.value;
@@ -49,7 +50,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const pendingHabits = habits.filter((h) => !h.completedDates || !h.completedDates.includes(today));
+  const pendingHabits = habits.filter((h) => h.lastCompleted !== today);
 
   const stats = [
     { label: "Saldo do Mês", value: formatCurrency(totalBalance), icon: Wallet, color: "text-primary", bg: "bg-primary/10" },
