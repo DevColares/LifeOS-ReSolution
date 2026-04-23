@@ -4,7 +4,7 @@ import ThemeToggle from "./ThemeToggle";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-type View = "dashboard" | "habits" | "goals" | "relationships" | "finance" | "notes" | "settings";
+type View = "dashboard" | "habits" | "goals" | "relationships" | "finance" | "notes" | "settings" | "spinoff";
 
 const navItems: { id: View; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "Painel", icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const navItems: { id: View; label: string; icon: React.ElementType }[] = [
   { id: "relationships", label: "Relacionamentos", icon: Users },
   { id: "finance", label: "Finanças", icon: Wallet },
   { id: "notes", label: "Anotações", icon: NotebookPen },
+  { id: "spinoff", label: "Spin-off", icon: Flame },
   { id: "settings", label: "Configurações", icon: Settings },
 ];
 

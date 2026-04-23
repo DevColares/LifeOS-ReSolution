@@ -7,6 +7,7 @@ import RelationshipsView from "@/components/RelationshipsView";
 import Settings from "@/components/Settings";
 import FinanceView from "@/components/FinanceView";
 import NotesView from "@/components/NotesView";
+import SpinOffView from "@/components/SpinOffView";
 import { Habit, Goal, Relationship, Transaction, Note } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthScreen } from "@/components/AuthScreen";
@@ -66,6 +67,7 @@ const Index = () => {
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
           {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} categories={categories} />}
           {view === "notes" && <NotesView notes={notes} setNotes={setNotes} />}
+          {view === "spinoff" && <SpinOffView />}
           {view === "settings" && (
             <Settings 
                 userProfile={userProfile} 
