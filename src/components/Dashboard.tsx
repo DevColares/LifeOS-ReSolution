@@ -76,10 +76,10 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-slate-100 dark:border-white/5">
         <div className="space-y-2">
-          <h1 className="text-4xl lg:text-5xl font-display font-black tracking-tight text-slate-950 dark:text-white">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-slate-950 dark:text-white">
             Olá, {profileName}
           </h1>
-          <p className="text-slate-600 dark:text-muted-foreground text-lg lg:text-xl font-medium">
+          <p className="text-slate-600 dark:text-muted-foreground text-base sm:text-lg lg:text-xl font-medium">
             Seu LifeOS está pronto para mais um dia de conquistas.
           </p>
         </div>
@@ -97,7 +97,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
       {/* Primary Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat) => (
-          <div key={stat.label} className="glass-card p-8 group hover:scale-[1.02] transition-all duration-300">
+          <div key={stat.label} className="glass-card p-5 sm:p-8 group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-center gap-6">
               <div className={cn("p-4 rounded-[1.25rem] transition-colors duration-300", stat.bg, stat.color)}>
                 <stat.icon className="h-7 w-7" />

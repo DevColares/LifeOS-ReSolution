@@ -58,7 +58,7 @@ const Index = () => {
     <div className="flex h-screen bg-background overflow-hidden relative">
       <AppSidebar active={view} onNavigate={setView} />
       <main className="flex-1 h-full overflow-y-auto no-scrollbar pb-32 md:pb-8">
-        <div className="max-w-6xl mx-auto p-6 md:p-12 lg:p-16">
+        <div className="max-w-6xl mx-auto p-4 md:p-12 lg:p-16">
           {view === "dashboard" && (
             <Dashboard habits={habits} goals={goals} transactions={transactions} userProfile={userProfile} />
           )}
@@ -67,7 +67,6 @@ const Index = () => {
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
           {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} categories={categories} />}
           {view === "notes" && <NotesView notes={notes} setNotes={setNotes} />}
-          {view === "spinoff" && <SpinOffView />}
           {view === "settings" && (
             <Settings 
                 userProfile={userProfile} 

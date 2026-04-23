@@ -13,7 +13,6 @@ const navItems: { id: View; label: string; icon: React.ElementType }[] = [
   { id: "relationships", label: "Relacionamentos", icon: Users },
   { id: "finance", label: "Finanças", icon: Wallet },
   { id: "notes", label: "Anotações", icon: NotebookPen },
-  { id: "spinoff", label: "Spin-off", icon: Flame },
   { id: "settings", label: "Configurações", icon: Settings },
 ];
 
@@ -74,8 +73,8 @@ export default function AppSidebar({ active, onNavigate }: AppSidebarProps) {
   return (
     <>
       {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden p-4">
-        <div className="glass-card flex items-center justify-around py-2 px-2 rounded-[2rem] shadow-2xl border-white/10">
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-4 pb-6 pt-2">
+        <div className="glass-card flex items-center gap-1 p-2 rounded-[2rem] shadow-2xl border-white/10 overflow-x-auto no-scrollbar">
           {navItems.map((item) => {
             const isActive = active === item.id;
             return (
@@ -83,11 +82,11 @@ export default function AppSidebar({ active, onNavigate }: AppSidebarProps) {
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
                 className={cn(
-                  "flex flex-col items-center p-3 transition-all duration-300 relative rounded-2xl",
+                  "flex flex-col items-center p-3 transition-all duration-300 relative rounded-2xl shrink-0",
                   isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <item.icon className={cn("h-6 w-6 transition-transform duration-300", isActive && "scale-110")} />
+                <item.icon className={cn("h-5 w-5 transition-transform duration-300", isActive && "scale-110")} />
                 {isActive && (
                   <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full animate-pulse" />
                 )}
@@ -97,9 +96,9 @@ export default function AppSidebar({ active, onNavigate }: AppSidebarProps) {
           {deferredPrompt && (
             <button
               onClick={handleInstall}
-              className="flex flex-col items-center p-3 text-primary bg-primary/10 rounded-2xl animate-bounce"
+              className="flex flex-col items-center p-3 text-primary bg-primary/10 rounded-2xl animate-bounce shrink-0"
             >
-              <Download className="h-6 w-6" />
+              <Download className="h-5 w-5" />
             </button>
           )}
         </div>

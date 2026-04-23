@@ -161,14 +161,14 @@ const SpinOffView = () => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-display font-black tracking-tighter text-foreground uppercase italic">
+        <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tighter text-foreground uppercase italic">
           Painel de Controle: <span className="text-primary">Temporada Spin-off</span>
         </h1>
         <div className="h-1 w-24 bg-primary/20 mx-auto rounded-full" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 bg-black/40 backdrop-blur-xl border-white/10 space-y-6">
+        <Card className="p-4 sm:p-6 bg-black/40 backdrop-blur-xl border-white/10 space-y-6">
           <h3 className="text-lg font-bold tracking-tight text-foreground/80 flex items-center gap-2">
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             Configuração de Impulso
@@ -273,13 +273,13 @@ const SpinOffView = () => {
           </Accordion>
         </Card>
 
-        <Card className="p-6 bg-black/40 backdrop-blur-xl border-white/10 flex flex-col justify-center">
+        <Card className="p-4 sm:p-6 bg-black/40 backdrop-blur-xl border-white/10 flex flex-col justify-center">
           <h3 className="text-lg font-bold tracking-tight text-foreground/80 mb-8 flex items-center gap-2">
             <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
             Estado do Fogão
           </h3>
           
-          <div className="grid grid-cols-2 gap-8 items-center justify-items-center">
+          <div className="grid grid-cols-2 gap-4 sm:gap-8 items-center justify-items-center">
             {pillars.map((pillar) => {
               const intensity = calculateIntensity(pillar.id);
               return (
@@ -316,7 +316,7 @@ const SpinOffView = () => {
         </Card>
       </div>
 
-      <Card className="p-6 bg-black/40 backdrop-blur-xl border-white/10">
+      <Card className="p-4 sm:p-6 bg-black/40 backdrop-blur-xl border-white/10">
         <h3 className="text-lg font-bold tracking-tight text-foreground/80 mb-6 flex items-center gap-2">
           <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
           Projeção de Trajetória
