@@ -266,7 +266,7 @@ bot.on('message', async (msg) => {
         if (session.step === "waiting_description") {
             await sessionRef.update({ step: "waiting_category", description: text });
             const catSnap = await db.doc(`users/${YOUR_FIREBASE_UID}/settings/categories`).get();
-            const categories = catSnap.exists() ? catSnap.data().expense : ["Alimentação", "Transporte", "Moradia", "Lazer", "Outros"];
+            const categories = catSnap.exists ? catSnap.data().expense : ["Alimentação", "Transporte", "Moradia", "Lazer", "Outros"];
             const keyboard = { reply_markup: { keyboard: categories.map(cat => [{ text: cat }]), one_time_keyboard: true, resize_keyboard: true }};
             bot.sendMessage(chatId, "📂 Categoria:", keyboard);
             return;

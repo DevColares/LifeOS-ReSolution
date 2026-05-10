@@ -27,16 +27,26 @@ export function useRealtimeNotifications() {
           const data = change.doc.data();
           console.log("Nova notificação detectada:", data);
           
-          // 1. Mostrar Toast no sistema
+          // 1. Mostrar Toast no sistema (UI interna)
           toast(data.title || "Notificação LifeOS", {
             description: data.message,
           });
 
-          // 2. Mostrar Notificação Nativa
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(data.title || "LifeOS", {
-              body: data.message,
-              icon: "/favicon.ico"
+          // 2. Mostrar Notificação Nativa (Sistema Operacional)
+          if ("serviceWorker" in navigator && "Notification" in window) {
+            Notification.requestPermission().then(permission => {
+              if (permission === "granted") {
+                navigator.serviceWorker.ready.then(registration => {
+                  registration.showNotification(data.title || "LifeOS", {
+                    body: data.message,
+                    icon: "/icon-192.png",
+                    badge: "/favicon.ico",
+                    vibrate: [200, 100, 200],
+                    tag: "lifeos-notification", // Evita duplicados
+                    requireInteraction: true // Fica no Windows até o usuário fechar
+                  });
+                });
+              }
             });
           }
 
