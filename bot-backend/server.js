@@ -53,28 +53,52 @@ bot.on('document', async (msg) => {
         console.log(fullText || "(Vazio)");
         console.log("--------------------");
         
-        // Regex aprimorada: Aceita R$, $, RS, ou apenas o valor se precedido por TOTAL/VALOR
-        const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.]+(?:,\d{2})?)/i;
+        // Regex aprimorada: 
+        const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.,]+)(?:[\s\n,.]+([0-9]{2}))?\b/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
-            const value = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
-            const sessionRef = db.collection("botSessions").doc(chatId.toString());
-            await sessionRef.set({ step: "waiting_description", value, chatId });
-            bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
-        } else {
-            // Tenta busca genérica
-            const genericValueRegex = /([\d\.]+(?:,\d{2}))/g;
-            const matches = fullText.match(genericValueRegex);
-            if (matches && matches.length > 0) {
-                const lastValue = matches[matches.length - 1];
-                const value = parseFloat(lastValue.replace(/\./g, '').replace(',', '.'));
+            let integerPart = match[1];
+            let centsPart = match[2];
+
+            if (integerPart.includes(',')) {
+                const parts = integerPart.split(',');
+                if (parts[1].length === 2 && !centsPart) {
+                    centsPart = parts[1];
+                    integerPart = parts[0];
+                }
+            }
+
+            const cleanInteger = integerPart.replace(/[\.\s]/g, '');
+            const finalCents = centsPart || "00";
+            const value = parseFloat(`${cleanInteger}.${finalCents}`);
+
+            if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
                 await sessionRef.set({ step: "waiting_description", value, chatId });
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF (provável)!\n\nDescrição:`, { parse_mode: 'Markdown' });
-            } else {
-                bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+                return;
             }
+        }
+
+        // Tenta busca genérica
+        const genericValueRegex = /(\d+[\d\.]*)(?:[\s\n,.]+([0-9]{2}))\b/g;
+        let genericMatch;
+        let lastFoundValue = null;
+
+        while ((genericMatch = genericValueRegex.exec(fullText)) !== null) {
+            const integerPart = genericMatch[1].replace(/[\.\s]/g, '');
+            const centsPart = genericMatch[2];
+            const val = parseFloat(`${integerPart}.${centsPart}`);
+            if (!isNaN(val)) lastFoundValue = val;
+        }
+
+        if (lastFoundValue !== null) {
+            const sessionRef = db.collection("botSessions").doc(chatId.toString());
+            await sessionRef.set({ step: "waiting_description", value: lastFoundValue, chatId });
+            bot.sendMessage(chatId, `💰 *R$ ${lastFoundValue.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+        } else {
+            bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
         }
     } catch (error) {
         console.error("Erro PDF:", error);
@@ -108,34 +132,59 @@ bot.on('photo', async (msg) => {
             return;
         }
 
-        // Regex aprimorada: Aceita R$, $, RS, ou apenas o valor se precedido por TOTAL/VALOR
-        // Também lida com OCR comum trocando S por 5 ou vice-versa
-        const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.]+(?:,\d{2})?)/i;
+        // Regex aprimorada: 
+        // 1. Procura por palavras-chave
+        // 2. Captura a parte inteira (com possíveis pontos de milhar)
+        // 3. Captura centavos que podem estar separados por espaço, vírgula, ponto ou quebra de linha
+        const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.,]+)(?:[\s\n,.]+([0-9]{2}))?\b/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
-            const rawValue = match[1];
-            const value = parseFloat(rawValue.replace(/\./g, '').replace(',', '.'));
+            let integerPart = match[1];
+            let centsPart = match[2];
+
+            // Se o match[1] já contém uma vírgula, provavelmente já tem os centavos
+            if (integerPart.includes(',')) {
+                const parts = integerPart.split(',');
+                // Se a parte após a vírgula tem 2 dígitos, ela é o centavo
+                if (parts[1].length === 2 && !centsPart) {
+                    centsPart = parts[1];
+                    integerPart = parts[0];
+                }
+            }
+
+            // Limpa pontos de milhar da parte inteira
+            const cleanInteger = integerPart.replace(/[\.\s]/g, '');
+            const finalCents = centsPart || "00";
+            const value = parseFloat(`${cleanInteger}.${finalCents}`);
 
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
                 await sessionRef.set({ step: "waiting_description", value, chatId });
                 bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+                return;
             }
+        }
+
+        // Tenta uma busca genérica se a regex de palavra-chave falhar
+        // Busca por: [número][separador opcional][2 dígitos de centavos]
+        const genericValueRegex = /(\d+[\d\.]*)(?:[\s\n,.]+([0-9]{2}))\b/g;
+        let genericMatch;
+        let lastFoundValue = null;
+
+        while ((genericMatch = genericValueRegex.exec(fullText)) !== null) {
+            const integerPart = genericMatch[1].replace(/[\.\s]/g, '');
+            const centsPart = genericMatch[2];
+            const val = parseFloat(`${integerPart}.${centsPart}`);
+            if (!isNaN(val)) lastFoundValue = val;
+        }
+
+        if (lastFoundValue !== null) {
+            const sessionRef = db.collection("botSessions").doc(chatId.toString());
+            await sessionRef.set({ step: "waiting_description", value: lastFoundValue, chatId });
+            bot.sendMessage(chatId, `💰 *R$ ${lastFoundValue.toFixed(2)}* detectado!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
         } else {
-            // Tenta uma busca genérica por qualquer valor monetário no final do texto
-            const genericValueRegex = /([\d\.]+(?:,\d{2}))/g;
-            const matches = fullText.match(genericValueRegex);
-            if (matches && matches.length > 0) {
-                const lastValue = matches[matches.length - 1];
-                const value = parseFloat(lastValue.replace(/\./g, '').replace(',', '.'));
-                
-                const sessionRef = db.collection("botSessions").doc(chatId.toString());
-                await sessionRef.set({ step: "waiting_description", value, chatId });
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado (provável)!\n\nDescrição:`, { parse_mode: 'Markdown' });
-            } else {
-                bot.sendMessage(chatId, "❌ Valor não encontrado na imagem. Tente digitar o valor manualmente.");
-            }
+            bot.sendMessage(chatId, "❌ Valor não encontrado na imagem. Tente digitar o valor manualmente.");
         }
     } catch (error) {
         console.error("ERRO DETALHADO VISION:", error);
