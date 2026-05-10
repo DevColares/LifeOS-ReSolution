@@ -235,8 +235,8 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text ? msg.text.trim() : "";
 
-    // Ignorar se for foto (já tratada acima)
-    if (msg.photo) return;
+    // Ignorar se for foto ou documento (já tratados nos handlers específicos)
+    if (msg.photo || msg.document) return;
     if (!text) return;
 
     if (text.toLowerCase() === '/cancel' || text.toLowerCase() === '/start') {
