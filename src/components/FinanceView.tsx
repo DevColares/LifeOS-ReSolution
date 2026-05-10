@@ -1050,7 +1050,6 @@ export default function FinanceView({ transactions, setTransactions, categories,
                     ) : (
                         filteredTransactions.map((t) => (
                             <div key={t.id} className="glass-card p-3 sm:p-5 flex items-center group hover:scale-[1.01] transition-all relative overflow-hidden">
-                                {/* Left: Action Icon */}
                                 <button
                                     onClick={() => t.isAggregate 
                                         ? toggleInvoiceComplete(t.creditCardId, viewingMonth, viewingYear, t.isCompleted) 
@@ -1068,7 +1067,6 @@ export default function FinanceView({ transactions, setTransactions, categories,
                                      t.isCompleted ? <Check className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3px]" /> : <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
                                 </button>
 
-                                {/* Middle: Description & Info - TAKES ALL REMAINING SPACE */}
                                 <div className="min-w-0 flex-1">
                                     <p className={cn("font-bold text-xs sm:text-base truncate leading-tight", t.isCompleted ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-muted-foreground/60")}>
                                         {t.description}
@@ -1082,7 +1080,6 @@ export default function FinanceView({ transactions, setTransactions, categories,
                                     </div>
                                 </div>
 
-                                {/* Right: Value & Actions - PUSHED TO THE EDGE */}
                                 <div className="flex items-center gap-1 sm:gap-4 ml-2 shrink-0">
                                     <div className="text-right">
                                         <p className={cn("font-display font-black text-sm sm:text-lg leading-none", t.isCompleted ? (t.type === 'income' ? "text-success" : "text-destructive") : "text-slate-400 dark:text-muted-foreground/30")}>
@@ -1094,7 +1091,6 @@ export default function FinanceView({ transactions, setTransactions, categories,
                                         </div>
                                     </div>
 
-                                    {/* Action Submenu */}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <button className="p-1 sm:p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-muted-foreground/30 hover:text-foreground">
