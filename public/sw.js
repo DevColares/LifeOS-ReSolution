@@ -48,32 +48,10 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// --- Background Push Notifications ---
-self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push Received.');
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (e) {
-    data = { title: 'LifeOS', message: event.data ? event.data.text() : 'Nova notificação!' };
-  }
-
-  const title = data.title || 'LifeOS';
-  const options = {
-    body: data.message || data.body || 'Você tem uma nova atualização.',
-    icon: '/icon-192.png',
-    badge: '/favicon.ico',
-    vibrate: [200, 100, 200],
-    data: { url: data.url || '/' },
-    requireInteraction: true
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
-});
+// --- As notificações agora são tratadas pelo firebase-messaging-sw.js ---
 
 self.addEventListener('notificationclick', (event) => {
+
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
