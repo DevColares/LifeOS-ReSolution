@@ -14,6 +14,7 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { Loader2 } from "lucide-react";
 import { useFirestoreSync, useFirestoreDocSync } from "@/hooks/useFirestoreSync";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 
 const Index = () => {
   const [view, setView] = useState<View>("dashboard");
@@ -45,6 +46,7 @@ const Index = () => {
   const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || notesLoading || authLoading || ccLoading;
 
   useNotifications(notificationsConfig);
+  useRealtimeNotifications();
 
   if (isSyncing) {
     return (

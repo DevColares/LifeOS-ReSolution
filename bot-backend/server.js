@@ -166,10 +166,27 @@ async function finalize(chatId, sessionRef, data) {
 
         const methodDesc = data.paymentMethod === 'credit' ? `Cartão ${data.cardName}` : 'Saldo em Conta';
         bot.sendMessage(chatId, `✅ *Lançamento Confirmado!*\n\n📝 *${data.description}*\n💰 R$ ${data.value.toFixed(2)}\n💳 ${methodDesc}`, { parse_mode: 'Markdown' });
+
+        // Agendar notificação no celular em 20 segundos
+        setTimeout(async () => {
+            try {
+                await db.collection(`users/${YOUR_FIREBASE_UID}/notifications`).add({
+                    title: "Lançamento via Telegram",
+                    message: `✅ Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`,
+                    type: "success",
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    read: false
+                });
+                console.log("Notificação agendada enviada com sucesso.");
+            } catch (err) {
+                console.error("Erro ao enviar notificação agendada:", err);
+            }
+        }, 20000);
+
     } catch (e) {
         bot.sendMessage(chatId, "❌ Erro ao salvar.");
     }
 }
 
-app.get('/', (req, res) => res.send('Bot Online com OCR'));
+app.get('/', (req, res) => res.send('Bot Online com OCR e Notificações'));
 app.listen(port, () => console.log(`Rodando na porta ${port}`));
