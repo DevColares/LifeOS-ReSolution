@@ -66,17 +66,18 @@ export function useRealtimeNotifications() {
     if (!user || !messaging) return;
 
     try {
-      // Nota: Substitua pelo seu VAPID Key público do Console do Firebase
-      const VAPID_KEY = "BPAiqMDAWIaOtyLHJ9c8MuytiQxq4zT8Br3fB9pSwkpnVz0RaNqtW6RqWtt9-a_RdZvDeNHimsQZhHmu2nlNojYAQUI";
-
-      const currentToken = await getToken(messaging, {
+      // Corrigido: removido o "AQUI" que ficou no final da chave
+      const VAPID_KEY = "BPAiqMDAWIaOtyLHJ9c8MuytiQxq4zT8Br3fB9pSwkpnVz0RaNqtW6RqWtt9-a_RdZvDeNHimsQZhHmu2nlNojY"; 
+      
+      const currentToken = await getToken(messaging, { 
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: await navigator.serviceWorker.ready
       });
 
       if (currentToken) {
-        console.log("Token FCM obtido:", currentToken);
+        console.log("🚀 Token FCM obtido com sucesso:", currentToken);
         const settingsRef = doc(db, "users", user.uid, "settings", "notifications");
+
 
         // Garantir que o documento existe antes de dar update com arrayUnion
         const snap = await getDoc(settingsRef);
