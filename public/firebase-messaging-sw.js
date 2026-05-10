@@ -19,19 +19,22 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[Service Worker] Background Message received: ', payload);
   
-  const title = payload.data.title || "LifeOS";
+  const title = payload.notification?.title || payload.data?.title || "LifeOS";
+  const body = payload.notification?.body || payload.data?.message || "Nova atualização no financeiro!";
+  
   const options = {
-    body: payload.data.message || "Nova atualização no financeiro!",
+    body: body,
     icon: '/icon-192.png',
     badge: '/favicon.ico',
     vibrate: [200, 100, 200],
     data: {
-      url: payload.data.url || '/finance'
+      url: payload.data?.url || '/finance'
     }
   };
 
   self.registration.showNotification(title, options);
 });
+
 
 // Lógica de clique para abrir o app
 self.addEventListener('notificationclick', (event) => {
