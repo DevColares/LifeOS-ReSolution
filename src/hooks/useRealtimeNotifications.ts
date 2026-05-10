@@ -30,26 +30,8 @@ export function useRealtimeNotifications() {
         if (change.type === "added") {
           const data = change.doc.data();
 
-          toast(data.title || "Notificação LifeOS", {
-            description: data.message,
-          });
-
-          if ("serviceWorker" in navigator && "Notification" in window) {
-            Notification.requestPermission().then(permission => {
-              if (permission === "granted") {
-                navigator.serviceWorker.ready.then(registration => {
-                  registration.showNotification(data.title || "LifeOS", {
-                    body: data.message,
-                    icon: "/icon-192.png",
-                    badge: "/favicon.ico",
-                    vibrate: [200, 100, 200],
-                    tag: "lifeos-notification",
-                    requireInteraction: true
-                  });
-                });
-              }
-            });
-          }
+          // Removemos o toast e a notificação manual daqui
+          // para deixar apenas a notificação de segundo plano (FCM) agir.
 
           const docRef = doc(db, "users", user.uid, "notifications", change.doc.id);
           updateDoc(docRef, { read: true }).catch(err => console.error("Erro ao marcar como lida:", err));

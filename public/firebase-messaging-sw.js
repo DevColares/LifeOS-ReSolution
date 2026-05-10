@@ -1,8 +1,7 @@
-// public/firebase-messaging-sw.js
+// public/firebase-messaging-sw.js v2 (Forçar Update)
 importScripts('https://www.gstatic.com/firebasejs/9.2.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.2.0/firebase-messaging-compat.js');
 
-// Configuração idêntica ao seu src/lib/firebase.ts
 const firebaseConfig = {
   apiKey: "AIzaSyDVthB6l_SXFQm1STedOXHhBM8N9Q64GjM",
   authDomain: "rs-pdv.firebaseapp.com",
@@ -15,12 +14,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// Este é o segredo para funcionar com o sistema FECHADO
 messaging.onBackgroundMessage((payload) => {
-  console.log('[Service Worker] Background Message received: ', payload);
+  console.log('[Service Worker] Message:', payload);
   
   const title = payload.notification?.title || payload.data?.title || "LifeOS";
-  const body = payload.notification?.body || payload.data?.message || "Nova atualização no financeiro!";
+  const body = payload.notification?.body || payload.data?.message || payload.data?.body || "Nova atualização!";
   
   const options = {
     body: body,
@@ -35,19 +33,17 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, options);
 });
 
-
-// Lógica de clique para abrir o app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if (client.url.includes(event.notification.data.url) && 'focus' in client) {
+        if (client.url.includes(event.notification.data?.url || '/') && 'focus' in client) {
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.url);
+        return clients.openWindow(event.notification.data?.url || '/');
       }
     })
   );
