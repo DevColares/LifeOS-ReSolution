@@ -1,4 +1,4 @@
-import { Habit, Goal, Transaction } from "@/lib/types";
+import { Habit, Goal, Transaction, CreditCard } from "@/lib/types";
 import { Flame, Target, CheckCircle2, User, Wallet, PieChart as PieChartIcon, ArrowUp, ArrowDown, Calendar } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -10,19 +10,43 @@ interface DashboardProps {
   habits: Habit[];
   goals: Goal[];
   transactions: Transaction[];
+  creditCards: CreditCard[];
   userProfile: { name: string; photo: string };
 }
 
-export default function Dashboard({ habits, goals, transactions, userProfile }: DashboardProps) {
+export default function Dashboard({ habits, goals, transactions, userProfile, creditCards }: DashboardProps) {
   const today = new Date().toISOString().split("T")[0];
+
+  const getInvoiceMonth = (dateStr: string, cardId: string) => {
+    const card = creditCards.find(c => c.id === cardId);
+    if (!card) return null;
+    const purchaseDate = new Date(dateStr + 'T12:00:00');
+    let invoiceMonth = purchaseDate.getMonth();
+    let invoiceYear = purchaseDate.getFullYear();
+    if (purchaseDate.getDate() > card.closingDay) {
+        invoiceMonth++;
+        if (invoiceMonth > 11) {
+            invoiceMonth = 0;
+            invoiceYear++;
+        }
+    }
+    return { month: invoiceMonth, year: invoiceYear };
+  };
 
   const monthTransactions = useMemo(() => {
     const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
     return transactions.filter(t => {
+      if (t.paymentMethod === 'credit' && t.creditCardId) {
+        const inv = getInvoiceMonth(t.date, t.creditCardId);
+        return inv?.month === currentMonth && inv?.year === currentYear;
+      }
       const d = new Date(t.date + 'T12:00:00');
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
-  }, [transactions]);
+  }, [transactions, creditCards]);
 
   const totalBalance = useMemo(() => {
     return monthTransactions
@@ -33,6 +57,13 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
   const goalsInProgress = goals.filter(
     (g) => g.subtasks && g.subtasks.filter((s) => !s.done).length > 0
   ).length;
+
+  const paymentProgress = useMemo(() => {
+    const expenses = monthTransactions.filter(t => t.type === 'expense');
+    const total = expenses.reduce((acc, t) => acc + t.value, 0);
+    const paid = expenses.filter(t => t.isCompleted).reduce((acc, t) => acc + t.value, 0);
+    return { total, paid, percentage: total > 0 ? (paid / total) * 100 : 0 };
+  }, [monthTransactions]);
 
   const dailyData = useMemo(() => {
     const days: Record<string, { date: string, income: number, expense: number }> = {};
@@ -94,7 +125,7 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
         </div>
       </header>
 
-      {/* Primary Stats Grid */}
+      {/* Primary Stats Grid - 3 Columns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat) => (
           <div key={stat.label} className="glass-card p-5 sm:p-8 group hover:scale-[1.02] transition-all duration-300">
@@ -102,13 +133,74 @@ export default function Dashboard({ habits, goals, transactions, userProfile }: 
               <div className={cn("p-4 rounded-[1.25rem] transition-colors duration-300", stat.bg, stat.color)}>
                 <stat.icon className="h-7 w-7" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1 leading-none">{stat.label}</p>
-                <p className="text-2xl lg:text-3xl font-display font-black leading-none text-slate-950 dark:text-white">{stat.value}</p>
+                <p className="text-2xl lg:text-3xl font-display font-black leading-none text-slate-950 dark:text-white truncate">{stat.value}</p>
               </div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Large Payment Progress Card */}
+      <div className="glass-card p-8 rounded-[2.5rem] border-slate-200 dark:border-white/5 bg-gradient-to-r from-secondary/30 to-background/30 backdrop-blur-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/10 transition-all duration-1000" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="space-y-4 max-w-md">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-destructive/10 rounded-2xl text-destructive shadow-inner">
+                <ArrowDown className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-display font-black text-slate-950 dark:text-white uppercase tracking-tight">Quitação de Dívidas</h3>
+                <p className="text-sm font-medium text-slate-500">Acompanhamento de pagamentos do mês</p>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-display font-black text-slate-950 dark:text-white">
+                {formatCurrency(paymentProgress.paid)}
+              </span>
+              <span className="text-sm font-bold text-slate-400">
+                pagos de {formatCurrency(paymentProgress.total)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-4">
+            <div className="flex justify-between items-end">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary">Progresso Mensal</p>
+                <p className="text-2xl font-display font-black text-primary">{Math.round(paymentProgress.percentage)}%</p>
+              </div>
+              <div className="text-right hidden md:block">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Restante</p>
+                <p className="text-lg font-bold text-slate-600 dark:text-white/60">
+                  {formatCurrency(paymentProgress.total - paymentProgress.paid)}
+                </p>
+              </div>
+            </div>
+            <div className="w-full h-5 bg-slate-100 dark:bg-white/5 rounded-full p-1 border border-slate-200 dark:border-white/10 shadow-inner overflow-hidden">
+              <style>{`
+                @keyframes shimmer {
+                  0% { transform: translateX(-100%); }
+                  100% { transform: translateX(100%); }
+                }
+                .animate-shimmer-bar {
+                  animation: shimmer 2s infinite;
+                }
+              `}</style>
+              <div 
+                className="h-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-blue-500/40 relative" 
+                style={{ width: `${paymentProgress.percentage}%` }}
+              >
+                {/* Glossy Effect */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent rounded-full" />
+                {/* Animated Shine */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer-bar rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

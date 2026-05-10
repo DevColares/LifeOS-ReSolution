@@ -8,7 +8,7 @@ import Settings from "@/components/Settings";
 import FinanceView from "@/components/FinanceView";
 import NotesView from "@/components/NotesView";
 import SpinOffView from "@/components/SpinOffView";
-import { Habit, Goal, Relationship, Transaction, Note } from "@/lib/types";
+import { Habit, Goal, Relationship, Transaction, Note, CreditCard } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthScreen } from "@/components/AuthScreen";
 import { Loader2 } from "lucide-react";
@@ -21,6 +21,7 @@ const Index = () => {
   const [goals, setGoals, gLoading] = useFirestoreSync<Goal>("goals", []);
   const [relationships, setRelationships, rLoading] = useFirestoreSync<Relationship>("relationships", []);
   const [transactions, setTransactions, tLoading] = useFirestoreSync<Transaction>("finance", []);
+  const [creditCards, setCreditCards, ccLoading] = useFirestoreSync<CreditCard>("creditCards", []);
   const [notes, setNotes, notesLoading] = useFirestoreSync<Note>("notes", []);
   const [userProfile, setUserProfile, pLoading] = useFirestoreDocSync<{ name: string, photo: string }>("profile", { name: "Usuário", photo: "" });
   const [categories, setCategories, cLoading] = useFirestoreDocSync<any>("categories", {
@@ -35,7 +36,7 @@ const Index = () => {
   });
 
   const { user, loading: authLoading } = useAuth();
-  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || notesLoading || authLoading;
+  const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || notesLoading || authLoading || ccLoading;
 
   useNotifications(notificationsConfig);
 
@@ -60,12 +61,12 @@ const Index = () => {
       <main className="flex-1 h-full overflow-y-auto no-scrollbar pb-32 md:pb-8">
         <div className="max-w-6xl mx-auto p-4 md:p-12 lg:p-16">
           {view === "dashboard" && (
-            <Dashboard habits={habits} goals={goals} transactions={transactions} userProfile={userProfile} />
+            <Dashboard habits={habits} goals={goals} transactions={transactions} userProfile={userProfile} creditCards={creditCards} />
           )}
           {view === "habits" && <HabitsView habits={habits} setHabits={setHabits} goals={goals} />}
           {view === "goals" && <GoalsView goals={goals} setGoals={setGoals} habits={habits} />}
           {view === "relationships" && <RelationshipsView relationships={relationships} setRelationships={setRelationships} />}
-          {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} categories={categories} />}
+          {view === "finance" && <FinanceView transactions={transactions} setTransactions={setTransactions} categories={categories} creditCards={creditCards} setCreditCards={setCreditCards} />}
           {view === "notes" && <NotesView notes={notes} setNotes={setNotes} />}
           {view === "settings" && (
             <Settings 

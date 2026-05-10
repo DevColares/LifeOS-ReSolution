@@ -46,6 +46,15 @@ export interface Note {
   updatedAt: string;
 }
 
+export interface CreditCard {
+  id: string;
+  name: string;
+  limit: number;
+  closingDay: number;
+  dueDay: number;
+  color: string;
+}
+
 export interface Transaction {
   id: string;
   description: string;
@@ -57,4 +66,6 @@ export interface Transaction {
   installments?: number;
   currentInstallment?: number;
   groupId?: string;
+  paymentMethod?: 'balance' | 'credit';
+  creditCardId?: string;
 }
