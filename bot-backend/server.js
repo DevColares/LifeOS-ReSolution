@@ -84,8 +84,9 @@ bot.on('document', async (msg) => {
 
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
-                await sessionRef.set({ step: "waiting_description", value, chatId });
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+                await sessionRef.set({ step: "waiting_type", value, chatId });
+                const keyboard = { reply_markup: { keyboard: [[{ text: "Saída 🔴" }, { text: "Entrada 🟢" }]], one_time_keyboard: true, resize_keyboard: true }};
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF!\n\nO que é isso?`, keyboard);
                 return;
             }
         }
@@ -113,8 +114,9 @@ bot.on('document', async (msg) => {
 
         if (lastFoundValue !== null) {
             const sessionRef = db.collection("botSessions").doc(chatId.toString());
-            await sessionRef.set({ step: "waiting_description", value: lastFoundValue, chatId });
-            bot.sendMessage(chatId, `💰 *R$ ${lastFoundValue.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+            await sessionRef.set({ step: "waiting_type", value: lastFoundValue, chatId });
+            const keyboard = { reply_markup: { keyboard: [[{ text: "Saída 🔴" }, { text: "Entrada 🟢" }]], one_time_keyboard: true, resize_keyboard: true }};
+            bot.sendMessage(chatId, `💰 *R$ ${lastFoundValue.toFixed(2)}* detectado no PDF!\n\nO que é isso?`, keyboard);
         } else {
             bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
         }
@@ -190,8 +192,9 @@ bot.on('photo', async (msg) => {
 
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
-                await sessionRef.set({ step: "waiting_description", value, chatId });
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+                await sessionRef.set({ step: "waiting_type", value, chatId });
+                const keyboard = { reply_markup: { keyboard: [[{ text: "Saída 🔴" }, { text: "Entrada 🟢" }]], one_time_keyboard: true, resize_keyboard: true }};
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nO que é isso?`, keyboard);
                 return;
             }
         }
@@ -220,8 +223,9 @@ bot.on('photo', async (msg) => {
 
         if (lastFoundValue !== null) {
             const sessionRef = db.collection("botSessions").doc(chatId.toString());
-            await sessionRef.set({ step: "waiting_description", value: lastFoundValue, chatId });
-            bot.sendMessage(chatId, `💰 *R$ ${lastFoundValue.toFixed(2)}* detectado!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+            await sessionRef.set({ step: "waiting_type", value: lastFoundValue, chatId });
+            const keyboard = { reply_markup: { keyboard: [[{ text: "Saída 🔴" }, { text: "Entrada 🟢" }]], one_time_keyboard: true, resize_keyboard: true }};
+            bot.sendMessage(chatId, `💰 *R$ ${lastFoundValue.toFixed(2)}* detectado!\n\nO que é isso?`, keyboard);
         } else {
             bot.sendMessage(chatId, "❌ Valor não encontrado na imagem. Tente digitar o valor manualmente.");
         }
@@ -257,25 +261,40 @@ bot.on('message', async (msg) => {
         if (session.step === "idle") {
             const value = parseFloat(text.replace(',', '.').replace('R$', '').trim());
             if (!isNaN(value)) {
-                await sessionRef.set({ step: "waiting_description", value, chatId });
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* registrado!\n\nDescrição:`, { parse_mode: 'Markdown' });
+                await sessionRef.set({ step: "waiting_type", value, chatId });
+                const keyboard = { reply_markup: { keyboard: [[{ text: "Saída 🔴" }, { text: "Entrada 🟢" }]], one_time_keyboard: true, resize_keyboard: true }};
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* registrado!\n\nO que é isso?`, keyboard);
             }
+            return;
+        }
+
+        if (session.step === "waiting_type") {
+            const type = text.includes("Entrada") ? "income" : "expense";
+            await sessionRef.update({ step: "waiting_description", type });
+            bot.sendMessage(chatId, "📝 Agora, me diga a *Descrição*:", { parse_mode: 'Markdown' });
             return;
         }
 
         if (session.step === "waiting_description") {
             await sessionRef.update({ step: "waiting_category", description: text });
             const catSnap = await db.doc(`users/${YOUR_FIREBASE_UID}/settings/categories`).get();
-            const categories = catSnap.exists ? catSnap.data().expense : ["Alimentação", "Transporte", "Moradia", "Lazer", "Outros"];
+            const defaultCats = session.type === "income" ? ["Salário", "Investimento", "Presente", "Outros"] : ["Alimentação", "Transporte", "Moradia", "Lazer", "Outros"];
+            const categories = catSnap.exists ? (catSnap.data()[session.type] || defaultCats) : defaultCats;
+            
             const keyboard = { reply_markup: { keyboard: categories.map(cat => [{ text: cat }]), one_time_keyboard: true, resize_keyboard: true }};
-            bot.sendMessage(chatId, "📂 Categoria:", keyboard);
+            bot.sendMessage(chatId, "📂 Escolha a *Categoria*:", keyboard);
             return;
         }
 
         if (session.step === "waiting_category") {
             await sessionRef.update({ step: "waiting_method", category: text });
-            const keyboard = { reply_markup: { keyboard: [[{ text: "Saldo em Conta" }], [{ text: "Cartão de Crédito" }]], one_time_keyboard: true, resize_keyboard: true }};
-            bot.sendMessage(chatId, "💳 Como pagou?", keyboard);
+            if (session.type === "income") {
+                // Para entradas, geralmente vai direto para o saldo
+                return finalize(chatId, sessionRef, { ...session, category: text, paymentMethod: "balance" });
+            } else {
+                const keyboard = { reply_markup: { keyboard: [[{ text: "Saldo em Conta" }], [{ text: "Cartão de Crédito" }]], one_time_keyboard: true, resize_keyboard: true }};
+                bot.sendMessage(chatId, "💳 Como pagou?", keyboard);
+            }
             return;
         }
 
@@ -297,6 +316,7 @@ bot.on('message', async (msg) => {
             return finalize(chatId, sessionRef, { ...session, paymentMethod: "credit", creditCardId: selectedCard?.id, cardName: text });
         }
     } catch (e) {
+        console.error("Erro no fluxo de mensagens:", e);
         bot.sendMessage(chatId, "❌ Erro. Use /cancel.");
     }
 });
@@ -312,8 +332,8 @@ async function finalize(chatId, sessionRef, data) {
             category: data.category,
             value: data.value,
             date: dateStr,
-            type: 'expense',
-            isCompleted: data.paymentMethod === 'balance',
+            type: data.type || 'expense',
+            isCompleted: data.type === 'income' || data.paymentMethod === 'balance',
             paymentMethod: data.paymentMethod,
             creditCardId: data.creditCardId || null,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -322,15 +342,17 @@ async function finalize(chatId, sessionRef, data) {
         await db.collection(`users/${YOUR_FIREBASE_UID}/finance`).add(transaction);
         await sessionRef.delete();
 
+        const typeIcon = data.type === 'income' ? '🟢' : '🔴';
         const methodDesc = data.paymentMethod === 'credit' ? `Cartão ${data.cardName}` : 'Saldo em Conta';
-        bot.sendMessage(chatId, `✅ *Lançamento Confirmado!*\n\n📝 *${data.description}*\n💰 R$ ${data.value.toFixed(2)}\n💳 ${methodDesc}`, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, `✅ *Lançamento Confirmado!* ${typeIcon}\n\n📝 *${data.description}*\n💰 R$ ${data.value.toFixed(2)}\n💳 ${methodDesc}`, { parse_mode: 'Markdown' });
 
         // Enviar notificação no celular imediatamente para feedback rápido
         try {
             console.log(`Enviando notificação para o UID: ${YOUR_FIREBASE_UID}`);
+            const typeIcon = data.type === 'income' ? '🟢' : '🔴';
             await db.collection(`users/${YOUR_FIREBASE_UID}/notifications`).add({
                 title: "Lançamento via Telegram",
-                message: `✅ Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`,
+                message: `${typeIcon} Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`,
                 type: "success",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 read: false
