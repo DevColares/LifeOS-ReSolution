@@ -28,9 +28,7 @@ self.addEventListener('activate', (event) => {
 });
 
 // Fetch: OBRIGATÓRIO para Chrome reconhecer como PWA instalável
-// Estratégia: Network first, fallback para cache
 self.addEventListener('fetch', (event) => {
-  // Ignorar requisições não-GET e do Firebase/APIs externas
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
@@ -38,13 +36,11 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Atualiza o cache com a resposta nova
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return response;
       })
       .catch(() => {
-        // Se offline, serve do cache
         return caches.match(event.request).then((cached) => {
           return cached || caches.match('/index.html');
         });
@@ -52,7 +48,31 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Notification click: foca ou abre o app
+// --- Background Push Notifications ---
+self.addEventListener('push', (event) => {
+  console.log('[Service Worker] Push Received.');
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'LifeOS', message: event.data ? event.data.text() : 'Nova notificação!' };
+  }
+
+  const title = data.title || 'LifeOS';
+  const options = {
+    body: data.message || data.body || 'Você tem uma nova atualização.',
+    icon: '/icon-192.png',
+    badge: '/favicon.ico',
+    vibrate: [200, 100, 200],
+    data: { url: data.url || '/' },
+    requireInteraction: true
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
@@ -60,7 +80,8 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of windowClients) {
         if ('focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow('/');
+      if (clients.openWindow) return clients.openWindow(event.notification.data.url || '/');
     })
   );
 });
+

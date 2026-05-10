@@ -32,7 +32,7 @@ const bot = new TelegramBot(token, { polling: true });
 const app = express();
 app.use(express.json());
 
-console.log(`Bot LifeOS (com OCR) iniciado para o UID: ${YOUR_FIREBASE_UID}`);
+console.log(`Bot LifeOS (com OCR + Push) iniciado para o UID: ${YOUR_FIREBASE_UID}`);
 
 // --- LÓGICA DO BOT ---
 
@@ -380,9 +380,35 @@ async function finalize(chatId, sessionRef, data) {
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 read: false
             });
-            console.log("Notificação enviada com sucesso.");
+            console.log("Notificação Firestore salva com sucesso.");
+            
+            // --- Enviar Push Notification Real ---
+            const pushSnap = await db.doc(`users/${YOUR_FIREBASE_UID}/settings/notifications`).get();
+            const tokens = pushSnap.exists ? pushSnap.data().tokens : null;
+
+            if (tokens && Array.isArray(tokens) && tokens.length > 0) {
+                console.log(`Enviando Push para ${tokens.length} dispositivos...`);
+                const typeIcon = data.type === 'income' ? '🟢' : '🔴';
+                const message = {
+                    notification: {
+                        title: "Lançamento via Telegram",
+                        body: `${typeIcon} Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`
+                    },
+                    data: {
+                        title: "Lançamento via Telegram",
+                        message: `${typeIcon} Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`,
+                        url: "/finance"
+                    },
+                    tokens: tokens
+                };
+
+                const response = await admin.messaging().sendEachForMulticast(message);
+                console.log(`Push enviado: ${response.successCount} sucesso, ${response.failureCount} falha.`);
+                
+                // Limpeza opcional de tokens inválidos poderia ser feita aqui
+            }
         } catch (err) {
-            console.error("Erro ao enviar notificação:", err);
+            console.error("Erro ao enviar notificação (Firestore/Push):", err.message || err);
         }
 
     } catch (e) {
