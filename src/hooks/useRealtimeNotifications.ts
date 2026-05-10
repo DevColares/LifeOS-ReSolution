@@ -48,13 +48,16 @@ export function useRealtimeNotifications() {
     if (!user || !messaging) return;
 
     try {
-      // Corrigido: removido o "AQUI" que ficou no final da chave
       const VAPID_KEY = "BPAiqMDAWIaOtyLHJ9c8MuytiQxq4zT8Br3fB9pSwkpnVz0RaNqtW6RqWtt9-a_RdZvDeNHimsQZhHmu2nlNojY"; 
+      
+      // Registrar explicitamente o sw.js unificado
+      const registration = await navigator.serviceWorker.register('/sw.js');
       
       const currentToken = await getToken(messaging, { 
         vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: await navigator.serviceWorker.ready
+        serviceWorkerRegistration: registration
       });
+
 
       if (currentToken) {
         console.log("🚀 Token FCM obtido com sucesso:", currentToken);
