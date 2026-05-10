@@ -49,9 +49,9 @@ bot.on('document', async (msg) => {
         const data = await pdf(response.data);
         const fullText = data.text;
 
-        console.log("--- Texto do PDF ---");
-        console.log(fullText || "(Vazio)");
-        console.log("--------------------");
+        console.log("--- Texto do PDF (Resumo) ---");
+        console.log(fullText ? `${fullText.substring(0, 500)}...` : "(Vazio)");
+        console.log("----------------------------");
         
         // Regex aprimorada: 
         const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.,]+)(?:[\s\n,.]+([0-9]{2}))?\b/i;
@@ -134,7 +134,7 @@ bot.on('document', async (msg) => {
             bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
         }
     } catch (error) {
-        console.error("Erro PDF:", error);
+        console.error("Erro PDF:", error.message || error);
         bot.sendMessage(chatId, "⚠️ Erro ao processar PDF.");
     }
 });
@@ -156,9 +156,9 @@ bot.on('photo', async (msg) => {
         const [result] = await visionClient.textDetection({ image: { content: imageBuffer } });
         const fullText = result.fullTextAnnotation?.text || "";
 
-        console.log("--- Texto extraído ---");
-        console.log(fullText || "(Vazio)");
-        console.log("----------------------");
+        console.log("--- Texto extraído (Resumo) ---");
+        console.log(fullText ? `${fullText.substring(0, 500)}...` : "(Vazio)");
+        console.log("------------------------------");
 
         if (!fullText) {
             bot.sendMessage(chatId, "❌ Não consegui ler nenhum texto nesta imagem. Tente uma foto mais nítida.");
@@ -253,7 +253,7 @@ bot.on('photo', async (msg) => {
             bot.sendMessage(chatId, "❌ Valor não encontrado na imagem. Tente digitar o valor manualmente.");
         }
     } catch (error) {
-        console.error("ERRO DETALHADO VISION:", error);
+        console.error("ERRO VISION:", error.message || error);
         bot.sendMessage(chatId, `⚠️ Erro ao processar imagem: ${error.message}`);
     }
 });
@@ -339,8 +339,8 @@ bot.on('message', async (msg) => {
             return finalize(chatId, sessionRef, { ...session, paymentMethod: "credit", creditCardId: selectedCard?.id, cardName: text });
         }
     } catch (e) {
-        console.error("Erro no fluxo de mensagens:", e);
-        bot.sendMessage(chatId, "❌ Erro. Use /cancel.");
+        console.error("Erro no fluxo:", e.message || e);
+        bot.sendMessage(chatId, "❌ Ocorreu um erro no processamento. Tente novamente ou use /cancel.");
     }
 });
 
