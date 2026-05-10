@@ -390,10 +390,6 @@ async function finalize(chatId, sessionRef, data) {
                 console.log(`Enviando Push para ${tokens.length} dispositivos...`);
                 const typeIcon = data.type === 'income' ? '🟢' : '🔴';
                 const message = {
-                    notification: {
-                        title: "Lançamento via Telegram",
-                        body: `${typeIcon} Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`
-                    },
                     data: {
                         title: "Lançamento via Telegram",
                         message: `${typeIcon} Confirmado: ${data.description} - R$ ${data.value.toFixed(2)}`,
@@ -401,6 +397,7 @@ async function finalize(chatId, sessionRef, data) {
                     },
                     tokens: tokens
                 };
+
 
 
 
