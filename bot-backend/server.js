@@ -61,23 +61,36 @@ bot.on('document', async (msg) => {
             let integerPart = match[1];
             let centsPart = match[2];
 
-            if (centsPart) {
-                integerPart = integerPart.replace(/[\.\s,]/g, '');
-            } else if (integerPart.includes(',')) {
+            if (integerPart.includes(',')) {
                 const parts = integerPart.split(',');
                 if (parts[1].length === 2) {
                     centsPart = parts[1];
                     integerPart = parts[0].replace(/[\.\s]/g, '');
                 } else {
                     integerPart = integerPart.replace(/[\.\s,]/g, '');
+                }
+            } else if (integerPart.includes('.')) {
+                const parts = integerPart.split('.');
+                if (parts[parts.length - 1].length === 2) {
+                    centsPart = parts[parts.length - 1];
+                    integerPart = parts.slice(0, -1).join('').replace(/[\s,]/g, '');
+                } else {
+                    integerPart = integerPart.replace(/[\.\s,]/g, '');
+                }
+            }
+
+            if (!centsPart && match[2]) {
+                centsPart = match[2];
+                integerPart = integerPart.replace(/[\.\s,]/g, '');
+            }
+
+            if (!centsPart) {
+                if (integerPart.length >= 3) {
+                    centsPart = integerPart.slice(-2);
+                    integerPart = integerPart.slice(0, -2);
+                } else {
                     centsPart = "00";
                 }
-            } else if (integerPart.length >= 3 && !integerPart.includes('.') && !integerPart.includes(',')) {
-                centsPart = integerPart.slice(-2);
-                integerPart = integerPart.slice(0, -2);
-            } else {
-                integerPart = integerPart.replace(/[\.\s,]/g, '');
-                centsPart = "00";
             }
 
             const value = parseFloat(`${integerPart}.${centsPart}`);
@@ -161,31 +174,41 @@ bot.on('photo', async (msg) => {
             let integerPart = match[1];
             let centsPart = match[2];
 
-            // Caso 1: Centavos detectados explicitamente (pelo grupo 2 da regex)
-            if (centsPart) {
-                integerPart = integerPart.replace(/[\.\s,]/g, '');
-            } 
-            // Caso 2: Centavos estão dentro do match[1] com vírgula
-            else if (integerPart.includes(',')) {
+            // Verificação prioritária: Se match[1] já tem formato de decimal (ex: 65,00)
+            if (integerPart.includes(',')) {
                 const parts = integerPart.split(',');
                 if (parts[1].length === 2) {
                     centsPart = parts[1];
                     integerPart = parts[0].replace(/[\.\s]/g, '');
                 } else {
+                    // Se a vírgula não separa 2 dígitos, removemos e tratamos como parte do inteiro
                     integerPart = integerPart.replace(/[\.\s,]/g, '');
-                    centsPart = "00";
+                }
+            } else if (integerPart.includes('.')) {
+                // Se tem ponto, pode ser decimal (ex: 65.00) ou milhar (ex: 1.500)
+                const parts = integerPart.split('.');
+                if (parts[parts.length - 1].length === 2) {
+                    centsPart = parts[parts.length - 1];
+                    integerPart = parts.slice(0, -1).join('').replace(/[\s,]/g, '');
+                } else {
+                    integerPart = integerPart.replace(/[\.\s,]/g, '');
                 }
             }
-            // Caso 3: Não há separador explícito, mas o número é longo (ex: 568 -> 5,68)
-            // Só aplicamos isso se não houver pontos (que indicariam milhar)
-            else if (integerPart.length >= 3 && !integerPart.includes('.') && !integerPart.includes(',')) {
-                centsPart = integerPart.slice(-2);
-                integerPart = integerPart.slice(0, -2);
-            }
-            // Caso 4: Número curto ou com pontos, tratamos como valor inteiro
-            else {
+
+            // Se ainda não temos centsPart mas o regex capturou o grupo 2
+            if (!centsPart && match[2]) {
+                centsPart = match[2];
                 integerPart = integerPart.replace(/[\.\s,]/g, '');
-                centsPart = "00";
+            }
+
+            // Fallback para números sem separador (ex: 568 -> 5,68)
+            if (!centsPart) {
+                if (integerPart.length >= 3) {
+                    centsPart = integerPart.slice(-2);
+                    integerPart = integerPart.slice(0, -2);
+                } else {
+                    centsPart = "00";
+                }
             }
 
             const value = parseFloat(`${integerPart}.${centsPart}`);
