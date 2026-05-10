@@ -2,6 +2,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const admin = require('firebase-admin');
 const express = require('express');
 const vision = require('@google-cloud/vision');
+const axios = require('axios');
+const pdf = require('pdf-parse');
 require('dotenv').config();
 
 // --- CONFIGURAÇÕES ---
@@ -34,6 +36,38 @@ console.log(`Bot LifeOS (com OCR) iniciado para o UID: ${YOUR_FIREBASE_UID}`);
 
 // --- LÓGICA DO BOT ---
 
+// Tratar Documentos (PDF)
+bot.on('document', async (msg) => {
+    const chatId = msg.chat.id;
+    if (!msg.document || msg.document.mime_type !== 'application/pdf') return;
+
+    try {
+        bot.sendMessage(chatId, "📄 Lendo PDF...");
+        const fileLink = await bot.getFileLink(msg.document.file_id);
+        
+        const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
+        const data = await pdf(response.data);
+        const fullText = data.text;
+
+        console.log("Texto do PDF:", fullText);
+        
+        const valueRegex = /R\$\s?(\d{1,3}(\.\d{3})*,\d{2})/i;
+        const match = fullText.match(valueRegex);
+
+        if (match) {
+            const value = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+            const sessionRef = db.collection("botSessions").doc(chatId.toString());
+            await sessionRef.set({ step: "waiting_description", value, chatId });
+            bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+        } else {
+            bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
+        }
+    } catch (error) {
+        console.error("Erro PDF:", error);
+        bot.sendMessage(chatId, "⚠️ Erro ao processar PDF.");
+    }
+});
+
 // Tratar Fotos (Comprovantes)
 bot.on('photo', async (msg) => {
     const chatId = msg.chat.id;
@@ -48,28 +82,24 @@ bot.on('photo', async (msg) => {
 
         console.log("Texto extraído:", fullText);
 
-        // Regex aprimorada para PIX (procura R$ seguido de valor)
-        // Captura formatos como R$ 10,00 ou R$1.200,50
         const valueRegex = /R\$\s?(\d{1,3}(\.\d{3})*,\d{2})/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
             const rawValue = match[1];
-            // Converte formato BR (1.200,50) para Number (1200.50)
             const value = parseFloat(rawValue.replace(/\./g, '').replace(',', '.'));
 
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
                 await sessionRef.set({ step: "waiting_description", value, chatId });
-
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nDescrição:`, { parse_mode: 'Markdown' });
             }
         } else {
-            bot.sendMessage(chatId, "❌ Não encontrei o valor 'R$' no comprovante. Tente digitar o valor manualmente.");
+            bot.sendMessage(chatId, "❌ Valor não encontrado na imagem.");
         }
     } catch (error) {
-        console.error("Erro OCR:", error);
-        bot.sendMessage(chatId, "⚠️ Erro ao processar a imagem. Certifique-se de que a API Vision está ativada.");
+        console.error("ERRO DETALHADO VISION:", error.message, error.code);
+        bot.sendMessage(chatId, `⚠️ Erro OCR: ${error.message}. Verifique os logs do Render.`);
     }
 });
 
