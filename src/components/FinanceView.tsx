@@ -1049,14 +1049,14 @@ export default function FinanceView({ transactions, setTransactions, categories,
                         </div>
                     ) : (
                         filteredTransactions.map((t) => (
-                            <div key={t.id} className="glass-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4 group hover:scale-[1.01] transition-all relative overflow-hidden">
+                            <div key={t.id} className="glass-card p-3 sm:p-5 flex items-center group hover:scale-[1.01] transition-all relative overflow-hidden">
                                 {/* Left: Action Icon */}
                                 <button
                                     onClick={() => t.isAggregate 
                                         ? toggleInvoiceComplete(t.creditCardId, viewingMonth, viewingYear, t.isCompleted) 
                                         : toggleComplete(t.id)}
                                     className={cn(
-                                        "p-2.5 sm:p-3 rounded-2xl transition-all shrink-0",
+                                        "p-2 sm:p-3 rounded-2xl transition-all shrink-0 mr-3 sm:mr-4",
                                         t.isAggregate 
                                             ? (t.isCompleted ? "bg-orange-500/20 text-orange-500 shadow-lg shadow-orange-500/10" : "bg-secondary text-muted-foreground/30 hover:bg-secondary/80")
                                             : (t.isCompleted
@@ -1068,85 +1068,58 @@ export default function FinanceView({ transactions, setTransactions, categories,
                                      t.isCompleted ? <Check className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3px]" /> : <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
                                 </button>
 
-                                {/* Middle: Description & Info */}
+                                {/* Middle: Description & Info - TAKES ALL REMAINING SPACE */}
                                 <div className="min-w-0 flex-1">
                                     <p className={cn("font-bold text-xs sm:text-base truncate leading-tight", t.isCompleted ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-muted-foreground/60")}>
                                         {t.description}
                                     </p>
-                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
-                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-muted-foreground/60">{t.category}</span>
-                                        <span className="text-slate-400 dark:text-muted-foreground/30 hidden sm:inline">•</span>
-                                        <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-muted-foreground/40 italic">
-                                            {t.isAggregate ? `Vence em ${new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}` : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-muted-foreground/60 truncate max-w-[80px] sm:max-w-none">{t.category}</span>
+                                        <span className="text-slate-400 dark:text-muted-foreground/30">•</span>
+                                        <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-muted-foreground/40 italic truncate">
+                                            {t.isAggregate ? `Vence ${new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}` : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                         </span>
-                                        {t.isAggregate && (
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <button className="text-[9px] sm:text-[10px] font-bold text-primary/60 hover:text-primary transition-colors flex items-center gap-1">
-                                                        <span className="hidden sm:inline">•</span>
-                                                        <span className="underline decoration-primary/20 underline-offset-2">Detalhes ({t.details.length})</span>
-                                                    </button>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-md bg-background/95 backdrop-blur-xl border-white/10">
-                                                    <DialogHeader>
-                                                        <DialogTitle>Detalhamento: {t.description}</DialogTitle>
-                                                    </DialogHeader>
-                                                    <div className="space-y-3 mt-4 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
-                                                        {t.details.map((detail: any) => (
-                                                            <div key={detail.id} className="flex justify-between items-center p-3 rounded-xl bg-secondary/30 border border-slate-200 dark:border-white/5">
-                                                                <div className="min-w-0">
-                                                                    <p className="text-sm font-bold truncate">{detail.description}</p>
-                                                                    <p className="text-[10px] text-muted-foreground">{new Date(detail.date + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
-                                                                </div>
-                                                                <div className="flex items-center gap-3">
-                                                                    <p className="text-sm font-black text-destructive">{formatCurrency(detail.value)}</p>
-                                                                    <button onClick={() => deleteTransaction(detail.id)} className="p-1.5 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-colors">
-                                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </DialogContent>
-                                            </Dialog>
-                                        )}
                                     </div>
                                 </div>
 
-                                {/* Right: Value & Actions */}
-                                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                                {/* Right: Value & Actions - PUSHED TO THE EDGE */}
+                                <div className="flex items-center gap-1 sm:gap-4 ml-2 shrink-0">
                                     <div className="text-right">
                                         <p className={cn("font-display font-black text-sm sm:text-lg leading-none", t.isCompleted ? (t.type === 'income' ? "text-success" : "text-destructive") : "text-slate-400 dark:text-muted-foreground/30")}>
                                             {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
                                         </p>
                                         <div className="flex items-center justify-end gap-1 mt-1 opacity-60">
-                                            {t.paymentMethod === 'credit' ? <CreditCard className="h-2.5 w-2.5" /> : <Wallet className="h-2.5 w-2.5" />}
                                             <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">{t.paymentMethod === 'credit' ? 'Crédito' : 'Saldo'}</span>
+                                            {t.paymentMethod === 'credit' ? <CreditCard className="h-2.5 w-2.5" /> : <Wallet className="h-2.5 w-2.5" />}
                                         </div>
                                     </div>
 
                                     {/* Action Submenu */}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <button className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-muted-foreground/40 hover:text-foreground">
+                                            <button className="p-1 sm:p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-muted-foreground/30 hover:text-foreground">
                                                 <MoreVertical className="h-4 w-4" />
                                             </button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="w-40 bg-background/95 backdrop-blur-xl border-white/10">
                                             {!t.isAggregate ? (
                                                 <>
-                                                    <DropdownMenuItem onClick={() => handleEdit(t)} className="flex items-center gap-2 cursor-pointer">
-                                                        <Edit2 className="h-4 w-4" />
+                                                    <DropdownMenuItem onClick={() => handleEdit(t)} className="flex items-center gap-2 cursor-pointer font-bold text-[10px] uppercase tracking-widest">
+                                                        <Edit2 className="h-3.5 w-3.5" />
                                                         <span>Editar</span>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => deleteTransaction(t.id)} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive">
-                                                        <Trash2 className="h-4 w-4" />
+                                                    <DropdownMenuItem onClick={() => deleteTransaction(t.id)} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive font-bold text-[10px] uppercase tracking-widest">
+                                                        <Trash2 className="h-3.5 w-3.5" />
                                                         <span>Excluir</span>
                                                     </DropdownMenuItem>
                                                 </>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
+                                            ) : (
+                                                <DropdownMenuItem className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/40 italic">
+                                                    Lançamento de Fatura
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
                         ))
