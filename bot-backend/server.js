@@ -49,10 +49,12 @@ bot.on('document', async (msg) => {
         const data = await pdf(response.data);
         const fullText = data.text;
 
-        console.log("Texto do PDF:", fullText);
+        console.log("--- Texto do PDF ---");
+        console.log(fullText || "(Vazio)");
+        console.log("--------------------");
         
-        // Regex potente: aceita R$ 15 ou R$ 15,00
-        const valueRegex = /(?:R\$|\$)\s*([\d\.]+(?:,\d{2})?)/i;
+        // Regex aprimorada: Aceita R$, $, RS, ou apenas o valor se precedido por TOTAL/VALOR
+        const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.]+(?:,\d{2})?)/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
@@ -61,7 +63,18 @@ bot.on('document', async (msg) => {
             await sessionRef.set({ step: "waiting_description", value, chatId });
             bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
         } else {
-            bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
+            // Tenta busca genérica
+            const genericValueRegex = /([\d\.]+(?:,\d{2}))/g;
+            const matches = fullText.match(genericValueRegex);
+            if (matches && matches.length > 0) {
+                const lastValue = matches[matches.length - 1];
+                const value = parseFloat(lastValue.replace(/\./g, '').replace(',', '.'));
+                const sessionRef = db.collection("botSessions").doc(chatId.toString());
+                await sessionRef.set({ step: "waiting_description", value, chatId });
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado no PDF (provável)!\n\nDescrição:`, { parse_mode: 'Markdown' });
+            } else {
+                bot.sendMessage(chatId, "❌ Não encontrei o valor no PDF.");
+            }
         }
     } catch (error) {
         console.error("Erro PDF:", error);
@@ -78,13 +91,26 @@ bot.on('photo', async (msg) => {
         bot.sendMessage(chatId, "🔍 Lendo comprovante...");
 
         const fileLink = await bot.getFileLink(fileId);
-        const [result] = await visionClient.textDetection(fileLink);
+        
+        // Baixar a imagem como buffer para maior confiabilidade
+        const imageResponse = await axios.get(fileLink, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(imageResponse.data, 'binary');
+
+        const [result] = await visionClient.textDetection({ image: { content: imageBuffer } });
         const fullText = result.fullTextAnnotation?.text || "";
 
-        console.log("Texto extraído:", fullText);
+        console.log("--- Texto extraído ---");
+        console.log(fullText || "(Vazio)");
+        console.log("----------------------");
 
-        // Regex potente: aceita R$ 15 ou R$ 15,00
-        const valueRegex = /(?:R\$|\$)\s*([\d\.]+(?:,\d{2})?)/i;
+        if (!fullText) {
+            bot.sendMessage(chatId, "❌ Não consegui ler nenhum texto nesta imagem. Tente uma foto mais nítida.");
+            return;
+        }
+
+        // Regex aprimorada: Aceita R$, $, RS, ou apenas o valor se precedido por TOTAL/VALOR
+        // Também lida com OCR comum trocando S por 5 ou vice-versa
+        const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.]+(?:,\d{2})?)/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
@@ -94,14 +120,26 @@ bot.on('photo', async (msg) => {
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
                 await sessionRef.set({ step: "waiting_description", value, chatId });
-                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nDescrição:`, { parse_mode: 'Markdown' });
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado!\n\nAgora, me diga a *Descrição*:`, { parse_mode: 'Markdown' });
             }
         } else {
-            bot.sendMessage(chatId, "❌ Valor não encontrado na imagem.");
+            // Tenta uma busca genérica por qualquer valor monetário no final do texto
+            const genericValueRegex = /([\d\.]+(?:,\d{2}))/g;
+            const matches = fullText.match(genericValueRegex);
+            if (matches && matches.length > 0) {
+                const lastValue = matches[matches.length - 1];
+                const value = parseFloat(lastValue.replace(/\./g, '').replace(',', '.'));
+                
+                const sessionRef = db.collection("botSessions").doc(chatId.toString());
+                await sessionRef.set({ step: "waiting_description", value, chatId });
+                bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}* detectado (provável)!\n\nDescrição:`, { parse_mode: 'Markdown' });
+            } else {
+                bot.sendMessage(chatId, "❌ Valor não encontrado na imagem. Tente digitar o valor manualmente.");
+            }
         }
     } catch (error) {
-        console.error("ERRO DETALHADO VISION:", error.message, error.code);
-        bot.sendMessage(chatId, `⚠️ Erro OCR: ${error.message}. Verifique os logs do Render.`);
+        console.error("ERRO DETALHADO VISION:", error);
+        bot.sendMessage(chatId, `⚠️ Erro ao processar imagem: ${error.message}`);
     }
 });
 
