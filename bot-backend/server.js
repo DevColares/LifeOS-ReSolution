@@ -61,17 +61,26 @@ bot.on('document', async (msg) => {
             let integerPart = match[1];
             let centsPart = match[2];
 
-            if (integerPart.includes(',')) {
+            if (centsPart) {
+                integerPart = integerPart.replace(/[\.\s,]/g, '');
+            } else if (integerPart.includes(',')) {
                 const parts = integerPart.split(',');
-                if (parts[1].length === 2 && !centsPart) {
+                if (parts[1].length === 2) {
                     centsPart = parts[1];
-                    integerPart = parts[0];
+                    integerPart = parts[0].replace(/[\.\s]/g, '');
+                } else {
+                    integerPart = integerPart.replace(/[\.\s,]/g, '');
+                    centsPart = "00";
                 }
+            } else if (integerPart.length >= 3 && !integerPart.includes('.') && !integerPart.includes(',')) {
+                centsPart = integerPart.slice(-2);
+                integerPart = integerPart.slice(0, -2);
+            } else {
+                integerPart = integerPart.replace(/[\.\s,]/g, '');
+                centsPart = "00";
             }
 
-            const cleanInteger = integerPart.replace(/[\.\s]/g, '');
-            const finalCents = centsPart || "00";
-            const value = parseFloat(`${cleanInteger}.${finalCents}`);
+            const value = parseFloat(`${integerPart}.${centsPart}`);
 
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
@@ -81,16 +90,25 @@ bot.on('document', async (msg) => {
             }
         }
 
-        // Tenta busca genérica
+        // Busca genérica (fallback)
         const genericValueRegex = /(\d+[\d\.]*)(?:[\s\n,.]+([0-9]{2}))\b/g;
         let genericMatch;
         let lastFoundValue = null;
 
         while ((genericMatch = genericValueRegex.exec(fullText)) !== null) {
-            const integerPart = genericMatch[1].replace(/[\.\s]/g, '');
-            const centsPart = genericMatch[2];
-            const val = parseFloat(`${integerPart}.${centsPart}`);
+            const intP = genericMatch[1].replace(/[\.\s]/g, '');
+            const centsP = genericMatch[2];
+            const val = parseFloat(`${intP}.${centsP}`);
             if (!isNaN(val)) lastFoundValue = val;
+        }
+
+        if (lastFoundValue === null) {
+            const rawNumbers = fullText.match(/\b\d{3,}\b/g);
+            if (rawNumbers) {
+                const lastNum = rawNumbers[rawNumbers.length - 1];
+                const val = parseFloat(`${lastNum.slice(0, -2)}.${lastNum.slice(-2)}`);
+                if (!isNaN(val)) lastFoundValue = val;
+            }
         }
 
         if (lastFoundValue !== null) {
@@ -133,9 +151,7 @@ bot.on('photo', async (msg) => {
         }
 
         // Regex aprimorada: 
-        // 1. Procura por palavras-chave
-        // 2. Captura a parte inteira (com possíveis pontos de milhar)
-        // 3. Captura centavos que podem estar separados por espaço, vírgula, ponto ou quebra de linha
+        // Captura a parte numérica principal e tenta identificar centavos separados por espaço/newline
         const valueRegex = /(?:R\$|\$|RS|VALOR|TOTAL|PAGO)\s*[:=]?\s*([\d\.,]+)(?:[\s\n,.]+([0-9]{2}))?\b/i;
         const match = fullText.match(valueRegex);
 
@@ -143,20 +159,34 @@ bot.on('photo', async (msg) => {
             let integerPart = match[1];
             let centsPart = match[2];
 
-            // Se o match[1] já contém uma vírgula, provavelmente já tem os centavos
-            if (integerPart.includes(',')) {
+            // Caso 1: Centavos detectados explicitamente (pelo grupo 2 da regex)
+            if (centsPart) {
+                integerPart = integerPart.replace(/[\.\s,]/g, '');
+            } 
+            // Caso 2: Centavos estão dentro do match[1] com vírgula
+            else if (integerPart.includes(',')) {
                 const parts = integerPart.split(',');
-                // Se a parte após a vírgula tem 2 dígitos, ela é o centavo
-                if (parts[1].length === 2 && !centsPart) {
+                if (parts[1].length === 2) {
                     centsPart = parts[1];
-                    integerPart = parts[0];
+                    integerPart = parts[0].replace(/[\.\s]/g, '');
+                } else {
+                    integerPart = integerPart.replace(/[\.\s,]/g, '');
+                    centsPart = "00";
                 }
             }
+            // Caso 3: Não há separador explícito, mas o número é longo (ex: 568 -> 5,68)
+            // Só aplicamos isso se não houver pontos (que indicariam milhar)
+            else if (integerPart.length >= 3 && !integerPart.includes('.') && !integerPart.includes(',')) {
+                centsPart = integerPart.slice(-2);
+                integerPart = integerPart.slice(0, -2);
+            }
+            // Caso 4: Número curto ou com pontos, tratamos como valor inteiro
+            else {
+                integerPart = integerPart.replace(/[\.\s,]/g, '');
+                centsPart = "00";
+            }
 
-            // Limpa pontos de milhar da parte inteira
-            const cleanInteger = integerPart.replace(/[\.\s]/g, '');
-            const finalCents = centsPart || "00";
-            const value = parseFloat(`${cleanInteger}.${finalCents}`);
+            const value = parseFloat(`${integerPart}.${centsPart}`);
 
             if (!isNaN(value)) {
                 const sessionRef = db.collection("botSessions").doc(chatId.toString());
@@ -166,17 +196,26 @@ bot.on('photo', async (msg) => {
             }
         }
 
-        // Tenta uma busca genérica se a regex de palavra-chave falhar
-        // Busca por: [número][separador opcional][2 dígitos de centavos]
+        // Busca genérica (fallback)
         const genericValueRegex = /(\d+[\d\.]*)(?:[\s\n,.]+([0-9]{2}))\b/g;
         let genericMatch;
         let lastFoundValue = null;
 
         while ((genericMatch = genericValueRegex.exec(fullText)) !== null) {
-            const integerPart = genericMatch[1].replace(/[\.\s]/g, '');
-            const centsPart = genericMatch[2];
-            const val = parseFloat(`${integerPart}.${centsPart}`);
+            const intP = genericMatch[1].replace(/[\.\s]/g, '');
+            const centsP = genericMatch[2];
+            const val = parseFloat(`${intP}.${centsP}`);
             if (!isNaN(val)) lastFoundValue = val;
+        }
+
+        // Se não encontrou no formato acima, tenta buscar qualquer número de 3+ dígitos e assume centavos
+        if (lastFoundValue === null) {
+            const rawNumbers = fullText.match(/\b\d{3,}\b/g);
+            if (rawNumbers) {
+                const lastNum = rawNumbers[rawNumbers.length - 1];
+                const val = parseFloat(`${lastNum.slice(0, -2)}.${lastNum.slice(-2)}`);
+                if (!isNaN(val)) lastFoundValue = val;
+            }
         }
 
         if (lastFoundValue !== null) {
