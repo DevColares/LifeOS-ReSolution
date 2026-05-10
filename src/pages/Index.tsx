@@ -36,6 +36,12 @@ const Index = () => {
   });
 
   const { user, loading: authLoading } = useAuth();
+  
+  // Log temporário para ajudar na configuração do Bot do Telegram
+  if (user) {
+    console.log("SUA FIREBASE_UID PARA O BOT:", user.uid);
+  }
+
   const isSyncing = hLoading || gLoading || rLoading || tLoading || pLoading || cLoading || nLoading || notesLoading || authLoading || ccLoading;
 
   useNotifications(notificationsConfig);
