@@ -10,6 +10,8 @@ export function useRealtimeNotifications() {
   useEffect(() => {
     if (!user) return;
 
+    console.log("Iniciando escuta de notificações para UID:", user.uid);
+
     // Escuta notificações não lidas dos últimos minutos
     const q = query(
       collection(db, "users", user.uid, "notifications"),
@@ -19,16 +21,18 @@ export function useRealtimeNotifications() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`Snapshot recebido: ${snapshot.size} notificações não lidas.`);
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
           const data = change.doc.data();
+          console.log("Nova notificação detectada:", data);
           
           // 1. Mostrar Toast no sistema
           toast(data.title || "Notificação LifeOS", {
             description: data.message,
           });
 
-          // 2. Mostrar Notificação Nativa do Sistema Operacional (Mobile/Desktop)
+          // 2. Mostrar Notificação Nativa
           if ("Notification" in window && Notification.permission === "granted") {
             new Notification(data.title || "LifeOS", {
               body: data.message,
@@ -36,11 +40,16 @@ export function useRealtimeNotifications() {
             });
           }
 
-          // 3. Marcar como lida para não repetir
+          // 3. Marcar como lida
           const docRef = doc(db, "users", user.uid, "notifications", change.doc.id);
-          updateDoc(docRef, { read: true });
+          updateDoc(docRef, { read: true }).catch(err => console.error("Erro ao marcar como lida:", err));
         }
       });
+    }, (error) => {
+      console.error("ERRO NO SNAPSHOT DE NOTIFICAÇÕES:", error);
+      if (error.message.includes("index")) {
+        console.warn("⚠️ ALERTA: Você precisa criar um índice no Firestore. Verifique o link no erro acima.");
+      }
     });
 
     return () => unsubscribe();
