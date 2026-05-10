@@ -51,7 +51,8 @@ bot.on('document', async (msg) => {
 
         console.log("Texto do PDF:", fullText);
         
-        const valueRegex = /R\$\s?(\d{1,3}(\.\d{3})*,\d{2})/i;
+        // Regex potente: aceita R$ 15 ou R$ 15,00
+        const valueRegex = /(?:R\$|\$)\s*([\d\.]+(?:,\d{2})?)/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
@@ -82,7 +83,8 @@ bot.on('photo', async (msg) => {
 
         console.log("Texto extraído:", fullText);
 
-        const valueRegex = /R\$\s?(\d{1,3}(\.\d{3})*,\d{2})/i;
+        // Regex potente: aceita R$ 15 ou R$ 15,00
+        const valueRegex = /(?:R\$|\$)\s*([\d\.]+(?:,\d{2})?)/i;
         const match = fullText.match(valueRegex);
 
         if (match) {
