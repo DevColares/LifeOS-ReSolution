@@ -432,7 +432,7 @@ export default function FinanceView({ transactions, setTransactions, categories,
     const categoryData = useMemo(() => {
         const cats: Record<string, number> = {};
         
-        allTransactions.forEach(t => {
+        transactions.forEach(t => {
             if (t.type !== 'expense') return;
             let isRelevant = false;
 
@@ -450,7 +450,7 @@ export default function FinanceView({ transactions, setTransactions, categories,
         });
 
         return Object.entries(cats).map(([name, value]) => ({ name, value }));
-    }, [allTransactions, viewingMonth, viewingYear, creditCards]);
+    }, [transactions, viewingMonth, viewingYear, creditCards]);
 
     const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f', '#ffbb28'];
 
