@@ -403,14 +403,6 @@ bot.on('message', async (msg) => {
             return;
         }
 
-                bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-            } catch (error) {
-                console.error("Erro no resumo:", error.message || error);
-                bot.sendMessage(chatId, "⚠️ Erro ao gerar resumo.");
-            }
-            return;
-        }
-
         await db.collection("botSessions").doc(chatId.toString()).delete();
         if (text === '/start') {
             bot.sendMessage(chatId, "👋 Olá! Envie um valor ou a *foto do comprovante* para começar.");
