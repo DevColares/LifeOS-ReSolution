@@ -280,59 +280,82 @@ bot.on('message', async (msg) => {
                 
                 const now = new Date();
                 const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-                const year = brazilTime.getFullYear();
-                const month = brazilTime.getMonth(); // 0-indexed
-                const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-                const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-31`;
-                
-                // --- Resumo Financeiro (Relatório Geral) ---
-                const financeSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`)
-                    .where('date', '>=', startOfMonth)
-                    .where('date', '<=', endOfMonth)
-                    .get();
+                const currMonth = brazilTime.getMonth();
+                const currYear = brazilTime.getFullYear();
 
-                let realizedIncome = 0;
-                let pendingIncome = 0;
-                let realizedExpense = 0;
-                let pendingExpense = 0;
-                const categories = {};
+                // Buscar todas as transações e cartões para bater com a lógica do frontend
+                const [financeSnap, cardsSnap] = await Promise.all([
+                    db.collection(`users/${YOUR_FIREBASE_UID}/finance`).get(),
+                    db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get()
+                ]);
 
-                financeSnap.forEach(doc => {
-                    const data = doc.data();
-                    const val = parseFloat(data.value) || 0;
-                    if (data.type === 'income') {
-                        if (data.isCompleted) realizedIncome += val;
-                        else pendingIncome += val;
-                    } else {
-                        if (data.isCompleted) realizedExpense += val;
-                        else pendingExpense += val;
-                        
-                        const cat = data.category || 'Outros';
-                        categories[cat] = (categories[cat] || 0) + val;
-                    }
+                const creditCards = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const allTransactions = financeSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // 1. monthlyTransactions: Transações baseadas na DATA DE COMPRA (igual ao frontend)
+                const monthlyTransactions = allTransactions.filter(t => {
+                    const tDate = new Date(t.date + 'T12:00:00');
+                    return tDate.getMonth() === currMonth && tDate.getFullYear() === currYear;
                 });
 
-                const totalIncome = realizedIncome + pendingIncome;
-                const totalExpense = realizedExpense + pendingExpense;
-                const realizedBalance = realizedIncome - realizedExpense;
-                const projectedBalance = totalIncome - totalExpense;
+                // 2. creditExpensesOfMonth: Transações de crédito baseadas no MÊS DA FATURA
+                const creditExpensesInInvoice = allTransactions.filter(t => {
+                    if (t.paymentMethod !== 'credit' || t.type !== 'expense') return false;
+                    const card = creditCards.find(c => c.id === t.creditCardId);
+                    const inv = getInvoiceMonth(t.date, card);
+                    return inv?.month === currMonth && inv?.year === currYear;
+                });
+
+                const creditPaid = creditExpensesInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + t.value, 0);
+
+                // 3. Cálculos do Relatório Geral (exatamente como no frontend)
+                const totalIncome = monthlyTransactions
+                    .filter(t => t.type === 'income' && t.isCompleted)
+                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+                const normalExpensesPaid = monthlyTransactions
+                    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.isCompleted)
+                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+                
+                const currentTotalExpense = normalExpensesPaid + creditPaid; // "Já Pago"
+
+                const reportTotalIncome = monthlyTransactions
+                    .filter(t => t.type === 'income')
+                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+                const reportTotalExpense = monthlyTransactions
+                    .filter(t => t.type === 'expense')
+                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+                const pendingIncome = reportTotalIncome - totalIncome;
+                const pendingExpense = reportTotalExpense - currentTotalExpense;
+
+                const realizedBalance = totalIncome - currentTotalExpense;
+                const projectedBalance = reportTotalIncome - reportTotalExpense;
 
                 const monthName = brazilTime.toLocaleString('pt-BR', { month: 'long' });
                 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
                 
                 let message = `📊 *Relatório Geral - ${capitalize(monthName)}*\n\n`;
                 
-                message += `🟢 *Entradas Totais: R$ ${totalIncome.toFixed(2)}*\n`;
-                message += `   • Realizado: R$ ${realizedIncome.toFixed(2)}\n`;
+                message += `🟢 *Entradas Totais: R$ ${reportTotalIncome.toFixed(2)}*\n`;
+                message += `   • Já Recebido: R$ ${totalIncome.toFixed(2)}\n`;
                 message += `   • Pendente: R$ ${pendingIncome.toFixed(2)}\n\n`;
 
-                message += `🔴 *Saídas Totais: R$ ${totalExpense.toFixed(2)}*\n`;
-                message += `   • Realizado: R$ ${realizedExpense.toFixed(2)}\n`;
+                message += `🔴 *Saídas Totais: R$ ${reportTotalExpense.toFixed(2)}*\n`;
+                message += `   • Já Pago: R$ ${currentTotalExpense.toFixed(2)}\n`;
                 message += `   • Pendente: R$ ${pendingExpense.toFixed(2)}\n\n`;
 
                 message += `⚖️ *Saldo Realizado:* R$ ${realizedBalance.toFixed(2)}\n`;
                 message += `💰 *Saldo Final Previsto:* R$ ${projectedBalance.toFixed(2)}\n\n`;
                 
+                // Categorias baseadas no mês de compra
+                const categories = {};
+                monthlyTransactions.filter(t => t.type === 'expense').forEach(t => {
+                    const cat = t.category || 'Outros';
+                    categories[cat] = (categories[cat] || 0) + (parseFloat(t.value) || 0);
+                });
+
                 if (Object.keys(categories).length > 0) {
                     message += `📂 *Gastos por Categoria:*\n`;
                     const sortedCats = Object.entries(categories).sort((a, b) => b[1] - a[1]);
@@ -341,50 +364,44 @@ bot.on('message', async (msg) => {
                     });
                 }
 
-                // --- Cartões de Crédito ---
-                const cardsSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get();
-                const creditCards = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
+                // Cartões de Crédito (Projeções)
                 if (creditCards.length > 0) {
                     message += `\n💳 *Cartões de Crédito:*\n`;
-                    
-                    // Buscar transações de crédito (ampla faixa para cobrir faturas)
-                    const creditSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`)
-                        .where('paymentMethod', '==', 'credit')
-                        .get();
-
-                    const nextMonthDate = new Date(year, month + 1, 1);
+                    const nextMonthDate = new Date(currYear, currMonth + 1, 1);
                     const nextMonth = nextMonthDate.getMonth();
                     const nextYear = nextMonthDate.getFullYear();
 
                     creditCards.forEach(card => {
-                        let currentInvoice = 0;
-                        let nextInvoice = 0;
-                        let usedLimit = 0;
-
-                        creditSnap.forEach(doc => {
-                            const t = doc.data();
-                            if (t.creditCardId !== card.id) return;
-                            
+                        const cardInvoiceCurr = allTransactions.filter(t => {
+                            if (t.paymentMethod !== 'credit' || t.creditCardId !== card.id || t.type !== 'expense') return false;
                             const inv = getInvoiceMonth(t.date, card);
-                            if (inv.month === month && inv.year === year) {
-                                currentInvoice += t.value;
-                            } else if (inv.month === nextMonth && inv.year === nextYear) {
-                                nextInvoice += t.value;
-                            }
-                            
-                            if (!t.isCompleted) {
-                                usedLimit += t.value;
-                            }
-                        });
+                            return inv?.month === currMonth && inv?.year === currYear;
+                        }).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
 
-                        const availableLimit = card.limit - usedLimit;
+                        const cardInvoiceNext = allTransactions.filter(t => {
+                            if (t.paymentMethod !== 'credit' || t.creditCardId !== card.id || t.type !== 'expense') return false;
+                            const inv = getInvoiceMonth(t.date, card);
+                            return inv?.month === nextMonth && inv?.year === nextYear;
+                        }).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+                        const usedLimit = allTransactions
+                            .filter(t => t.paymentMethod === 'credit' && t.creditCardId === card.id && !t.isCompleted)
+                            .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
                         message += `\n*${card.name}*\n`;
-                        message += `• Fatura Atual: R$ ${currentInvoice.toFixed(2)}\n`;
-                        message += `• Próxima Fatura: R$ ${nextInvoice.toFixed(2)}\n`;
-                        message += `• Limite Livre: R$ ${availableLimit.toFixed(2)}\n`;
+                        message += `• Fatura Atual: R$ ${cardInvoiceCurr.toFixed(2)}\n`;
+                        message += `• Próxima Fatura: R$ ${cardInvoiceNext.toFixed(2)}\n`;
+                        message += `• Limite Livre: R$ ${(card.limit - usedLimit).toFixed(2)}\n`;
                     });
                 }
+
+                bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+            } catch (error) {
+                console.error("Erro no resumo:", error.message || error);
+                bot.sendMessage(chatId, "⚠️ Erro ao gerar resumo.");
+            }
+            return;
+        }
 
                 bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
             } catch (error) {
