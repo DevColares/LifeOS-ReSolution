@@ -337,21 +337,21 @@ export default function FinanceView({ transactions, setTransactions, categories,
     const { incomeTotal, incomeReceived, cashExpenseTotal, cashExpensePaid, creditInvoiceTotal, creditInvoicePaid } = useMemo(() => {
         const cashTransactions = monthlyTransactions.filter(t => t.paymentMethod !== 'credit');
         
-        const iTotal = cashTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.value, 0);
-        const iReceived = cashTransactions.filter(t => t.type === 'income' && t.isCompleted).reduce((acc, t) => acc + t.value, 0);
+        const iTotal = cashTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.value || 0), 0);
+        const iReceived = cashTransactions.filter(t => t.type === 'income' && t.isCompleted).reduce((acc, t) => acc + Number(t.value || 0), 0);
         
-        const ceTotal = cashTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.value, 0);
-        const cePaid = cashTransactions.filter(t => t.type === 'expense' && t.isCompleted).reduce((acc, t) => acc + t.value, 0);
-
+        const ceTotal = cashTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.value || 0), 0);
+        const cePaid = cashTransactions.filter(t => t.type === 'expense' && t.isCompleted).reduce((acc, t) => acc + Number(t.value || 0), 0);
+ 
         const creditInInvoice = transactions.filter(t => {
             if (t.paymentMethod !== 'credit' || t.type !== 'expense') return false;
             const inv = getInvoiceMonth(t.date, t.creditCardId);
             return inv?.month === viewingMonth && inv?.year === viewingYear;
         });
-
-        const ciTotal = creditInInvoice.reduce((acc, t) => acc + t.value, 0);
-        const ciPaid = creditInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + t.value, 0);
-
+ 
+        const ciTotal = creditInInvoice.reduce((acc, t) => acc + Number(t.value || 0), 0);
+        const ciPaid = creditInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + Number(t.value || 0), 0);
+ 
         return {
             incomeTotal: iTotal,
             incomeReceived: iReceived,
@@ -445,7 +445,7 @@ export default function FinanceView({ transactions, setTransactions, categories,
             }
 
             if (isRelevant) {
-                cats[t.category] = (cats[t.category] || 0) + t.value;
+                cats[t.category] = (cats[t.category] || 0) + Number(t.value || 0);
             }
         });
 
@@ -770,14 +770,14 @@ export default function FinanceView({ transactions, setTransactions, categories,
                                         </h4>
                                         <div className="space-y-3 pl-2">
                                             <div className="flex justify-between items-center">
-                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Entradas em Maio</span>
+                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Entradas em {monthNames[viewingMonth]}</span>
                                                 <div className="text-right">
                                                     <p className="text-sm font-bold text-success">{formatCurrency(incomeTotal)}</p>
                                                     <p className="text-[10px] text-muted-foreground">Rec: {formatCurrency(incomeReceived)}</p>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Saídas em Maio</span>
+                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Saídas em {monthNames[viewingMonth]}</span>
                                                 <div className="text-right">
                                                     <p className="text-sm font-bold text-destructive">{formatCurrency(cashExpenseTotal)}</p>
                                                     <p className="text-[10px] text-muted-foreground">Pago: {formatCurrency(cashExpensePaid)}</p>
