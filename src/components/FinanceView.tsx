@@ -2,9 +2,9 @@ import React, { useState, useMemo } from "react";
 import { Transaction } from "@/lib/types";
 import {
     Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar,
-    DollarSign, Check, ChevronLeft, ChevronRight, BarChart3, Repeat,
+    DollarSign, Check, ChevronLeft, ChevronRight, ChevronDown, BarChart3, Repeat,
     Tag, ArrowUp, ArrowDown, Edit2, ArrowUpDown, MoreVertical,
-    Settings2, CreditCard
+    Settings2, CreditCard, Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -66,6 +66,7 @@ export default function FinanceView({ transactions, setTransactions, categories,
     const [paymentMethod, setPaymentMethod] = useState<'balance' | 'credit'>('balance');
     const [selectedCardId, setSelectedCardId] = useState("");
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Credit Card Form State
     const [newCardName, setNewCardName] = useState("");
@@ -90,6 +91,14 @@ export default function FinanceView({ transactions, setTransactions, categories,
     // State for deletion
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+    const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
+
+    const toggleDay = (date: string) => {
+        setExpandedDays(prev => ({
+            ...prev,
+            [date]: !prev[date]
+        }));
+    };
 
     const monthNames = [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -408,15 +417,23 @@ export default function FinanceView({ transactions, setTransactions, categories,
 
         return allVisible
             .filter(t => {
-                if (filter === 'all') return true;
-                if (filter === 'credit') return true; // Already filtered above
-                return t.type === filter;
+                if (filter !== 'all' && filter !== 'credit' && t.type !== filter) return false;
+                
+                if (searchTerm) {
+                    const searchLower = searchTerm.toLowerCase();
+                    return (
+                        t.description.toLowerCase().includes(searchLower) ||
+                        t.category.toLowerCase().includes(searchLower)
+                    );
+                }
+                
+                return true;
             })
             .sort((a, b) => {
                 if (sortOrder === 'desc') return b.date.localeCompare(a.date);
                 return a.date.localeCompare(b.date);
             });
-    }, [monthlyTransactions, transactions, filter, sortOrder, viewingMonth, viewingYear, creditCards]);
+    }, [monthlyTransactions, transactions, filter, sortOrder, viewingMonth, viewingYear, creditCards, searchTerm]);
 
     const dailyData = useMemo(() => {
         const days: Record<string, { date: string, income: number, expense: number }> = {};
@@ -1042,9 +1059,20 @@ export default function FinanceView({ transactions, setTransactions, categories,
 
             {/* Transactions List */}
             <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <h3 className="text-xl font-display font-black">Transações de {monthNames[viewingMonth]}</h3>
-                    <div className="flex flex-wrap gap-2 bg-secondary/30 p-1 rounded-xl w-full sm:w-auto">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 px-1">
+                    <div className="space-y-1">
+                        <h3 className="text-xl font-display font-black">Lançamentos de {monthNames[viewingMonth]}</h3>
+                        <div className="relative group w-full sm:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
+                            <input
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Pesquisar lançamentos..."
+                                className="w-full bg-secondary/30 border border-slate-200 dark:border-white/5 rounded-xl pl-9 pr-4 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 bg-secondary/30 p-1 rounded-xl w-full lg:w-auto">
                         <div className="flex gap-1 pr-2 border-r border-slate-200 dark:border-white/10 mr-1">
                             <button
                                 onClick={() => setFilter('all')}
@@ -1077,7 +1105,7 @@ export default function FinanceView({ transactions, setTransactions, categories,
                             className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all bg-primary/10 text-primary hover:bg-primary/20"
                         >
                             <ArrowUpDown className="h-3 w-3" />
-                            {sortOrder === 'desc' ? 'Mais recente' : 'Mais antigo'}
+                            {sortOrder === 'desc' ? 'Recentes' : 'Antigos'}
                         </button>
                     </div>
                 </div>
@@ -1088,77 +1116,130 @@ export default function FinanceView({ transactions, setTransactions, categories,
                             Nenhuma transação encontrada para este mês.
                         </div>
                     ) : (
-                        filteredTransactions.map((t) => (
-                            <div key={t.id} className="glass-card p-3 sm:p-5 flex items-center group hover:scale-[1.01] transition-all relative overflow-hidden">
-                                <button
-                                    onClick={() => t.isAggregate 
-                                        ? toggleInvoiceComplete(t.creditCardId, viewingMonth, viewingYear, t.isCompleted) 
-                                        : toggleComplete(t.id)}
-                                    className={cn(
-                                        "p-2 sm:p-3 rounded-2xl transition-all shrink-0 mr-3 sm:mr-4",
-                                        t.isAggregate 
-                                            ? (t.isCompleted ? "bg-orange-500/20 text-orange-500 shadow-lg shadow-orange-500/10" : "bg-secondary text-muted-foreground/30 hover:bg-secondary/80")
-                                            : (t.isCompleted
-                                                ? (t.type === 'income' ? "bg-success/20 text-success shadow-lg shadow-success/10" : "bg-destructive/20 text-destructive shadow-lg shadow-destructive/10")
-                                                : "bg-secondary text-muted-foreground/30 hover:bg-secondary/80")
-                                    )}
-                                >
-                                    {t.isAggregate ? <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3px]" /> :
-                                     t.isCompleted ? <Check className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3px]" /> : <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
-                                </button>
-
-                                <div className="min-w-0 flex-1">
-                                    <p className={cn("font-bold text-xs sm:text-base truncate leading-tight", t.isCompleted ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-muted-foreground/60")}>
-                                        {t.description}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-muted-foreground/60 truncate max-w-[80px] sm:max-w-none">{t.category}</span>
-                                        <span className="text-slate-400 dark:text-muted-foreground/30">•</span>
-                                        <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-muted-foreground/40 italic truncate">
-                                            {t.isAggregate ? `Vence ${new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}` : new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-1 sm:gap-4 ml-2 shrink-0">
-                                    <div className="text-right">
-                                        <p className={cn("font-display font-black text-sm sm:text-lg leading-none", t.isCompleted ? (t.type === 'income' ? "text-success" : "text-destructive") : "text-slate-400 dark:text-muted-foreground/30")}>
-                                            {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
-                                        </p>
-                                        <div className="flex items-center justify-end gap-1 mt-1 opacity-60">
-                                            <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">{t.paymentMethod === 'credit' ? 'Crédito' : 'Saldo'}</span>
-                                            {t.paymentMethod === 'credit' ? <CreditCard className="h-2.5 w-2.5" /> : <Wallet className="h-2.5 w-2.5" />}
+                        Object.entries(
+                            filteredTransactions.reduce((acc: any, t) => {
+                                const date = t.date;
+                                if (!acc[date]) acc[date] = [];
+                                acc[date].push(t);
+                                return acc;
+                            }, {})
+                        )
+                        .sort(([dateA], [dateB]) => sortOrder === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB))
+                        .map(([date, dayTransactions]: [string, any]) => {
+                            const dateObj = new Date(date + 'T12:00:00');
+                            const isToday = new Date().toISOString().split('T')[0] === date;
+                            const isExpanded = !!expandedDays[date];
+                            const hasPending = dayTransactions.some((t: any) => !t.isCompleted);
+                            
+                            return (
+                                <div key={date} className="space-y-4">
+                                    <div 
+                                        onClick={() => toggleDay(date)}
+                                        className="flex items-center gap-4 sticky top-0 z-20 py-2 bg-background/80 backdrop-blur-sm cursor-pointer group/header"
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">
+                                                {isToday ? "Hoje" : dateObj.toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                            </span>
+                                            <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                                                {dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                                <div className={cn("transition-transform duration-200", isExpanded ? "rotate-0" : "-rotate-90")}>
+                                                    <ChevronDown className="h-3.5 w-3.5 opacity-40 group-hover/header:opacity-100" />
+                                                </div>
+                                            </h4>
+                                        </div>
+                                        <div className="h-px flex-1 bg-slate-200 dark:bg-white/5" />
+                                        <div className="flex items-center gap-3">
+                                            {hasPending && (
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 animate-pulse">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                                    <span className="text-[8px] font-black uppercase text-orange-500">Pendente</span>
+                                                </div>
+                                            )}
+                                            <span className="text-[10px] font-bold text-slate-400 group-hover/header:text-primary transition-colors">
+                                                {dayTransactions.length} {dayTransactions.length === 1 ? 'item' : 'itens'}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <button className="p-1 sm:p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-muted-foreground/30 hover:text-foreground">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40 bg-background/95 backdrop-blur-xl border-white/10">
-                                            {!t.isAggregate ? (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => handleEdit(t)} className="flex items-center gap-2 cursor-pointer font-bold text-[10px] uppercase tracking-widest">
-                                                        <Edit2 className="h-3.5 w-3.5" />
-                                                        <span>Editar</span>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => deleteTransaction(t.id)} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive font-bold text-[10px] uppercase tracking-widest">
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                        <span>Excluir</span>
-                                                    </DropdownMenuItem>
-                                                </>
-                                            ) : (
-                                                <DropdownMenuItem className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground/40 italic">
-                                                    Lançamento de Fatura
-                                                </DropdownMenuItem>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    {isExpanded && (
+                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-300">
+                                            {dayTransactions.map((t: any) => (
+                                                <div key={t.id} className="glass-card p-3 sm:p-5 flex items-center group hover:scale-[1.01] transition-all relative overflow-hidden">
+                                                    <button
+                                                        onClick={() => t.isAggregate 
+                                                            ? toggleInvoiceComplete(t.creditCardId, viewingMonth, viewingYear, t.isCompleted) 
+                                                            : toggleComplete(t.id)}
+                                                        className={cn(
+                                                            "p-2 sm:p-3 rounded-2xl transition-all shrink-0 mr-3 sm:mr-4",
+                                                            t.isAggregate 
+                                                                ? (t.isCompleted ? "bg-orange-500/20 text-orange-500 shadow-lg shadow-orange-500/10" : "bg-secondary text-muted-foreground/30 hover:bg-secondary/80")
+                                                                : (t.isCompleted
+                                                                    ? (t.type === 'income' ? "bg-success/20 text-success shadow-lg shadow-success/10" : "bg-destructive/20 text-destructive shadow-lg shadow-destructive/10")
+                                                                    : "bg-secondary text-muted-foreground/30 hover:bg-secondary/80")
+                                                        )}
+                                                    >
+                                                        {t.isAggregate ? <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3px]" /> :
+                                                         t.isCompleted ? <Check className="h-4 w-4 sm:h-5 sm:w-5 stroke-[3px]" /> : <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
+                                                    </button>
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className={cn("font-bold text-xs sm:text-base truncate leading-tight", t.isCompleted ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-muted-foreground/60")}>
+                                                            {t.description}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-muted-foreground/60 truncate max-w-[80px] sm:max-w-none">{t.category}</span>
+                                                            <span className="text-slate-400 dark:text-muted-foreground/30">•</span>
+                                                            <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-muted-foreground/40 italic truncate">
+                                                                {t.isAggregate ? `Fatura ${creditCards.find(c => c.id === t.creditCardId)?.name}` : t.paymentMethod === 'credit' ? `Cartão ${creditCards.find(c => c.id === t.creditCardId)?.name}` : 'Saldo em conta'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1 sm:gap-4 ml-2 shrink-0">
+                                                        <div className="text-right">
+                                                            <p className={cn("font-display font-black text-sm sm:text-lg leading-none", t.isCompleted ? (t.type === 'income' ? "text-success" : "text-destructive") : "text-slate-400 dark:text-muted-foreground/30")}>
+                                                                {t.type === 'income' ? '+' : '-'} {formatCurrency(t.value)}
+                                                            </p>
+                                                            <div className="flex items-center justify-end gap-1 mt-1 opacity-60">
+                                                                <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">{t.paymentMethod === 'credit' ? 'Crédito' : 'Saldo'}</span>
+                                                                {t.paymentMethod === 'credit' ? <CreditCard className="h-2.5 w-2.5" /> : <Wallet className="h-2.5 w-2.5" />}
+                                                            </div>
+                                                        </div>
+
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <button className="p-1 sm:p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-muted-foreground/30 hover:text-foreground">
+                                                                    <MoreVertical className="h-4 w-4" />
+                                                                </button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-40 bg-background/95 backdrop-blur-xl border-white/10">
+                                                                {!t.isAggregate ? (
+                                                                    <>
+                                                                        <DropdownMenuItem onClick={() => handleEdit(t)} className="flex items-center gap-2 cursor-pointer font-bold text-[10px] uppercase tracking-widest">
+                                                                            <Edit2 className="h-3.5 w-3.5" />
+                                                                            <span>Editar</span>
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => deleteTransaction(t.id)} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive font-bold text-[10px] uppercase tracking-widest">
+                                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                                            <span>Excluir</span>
+                                                                        </DropdownMenuItem>
+                                                                    </>
+                                                                ) : (
+                                                                    <DropdownMenuItem className="text-[10px] font-bold uppercase tracking-widest opacity-50 italic">
+                                                                        Item Agregado
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </div>
