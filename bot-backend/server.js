@@ -276,14 +276,13 @@ bot.on('message', async (msg) => {
     if (text.toLowerCase() === '/cancel' || text.toLowerCase() === '/start' || text.toLowerCase() === '/resumo') {
         if (text.toLowerCase() === '/resumo') {
             try {
-                bot.sendMessage(chatId, "📊 Gerando resumo completo...");
+                bot.sendMessage(chatId, "📊 Gerando resumo detalhado...");
                 
                 const now = new Date();
                 const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
                 const currMonth = brazilTime.getMonth();
                 const currYear = brazilTime.getFullYear();
 
-                // Buscar todas as transações e cartões para bater com a lógica do frontend
                 const [financeSnap, cardsSnap] = await Promise.all([
                     db.collection(`users/${YOUR_FIREBASE_UID}/finance`).get(),
                     db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get()
@@ -292,72 +291,76 @@ bot.on('message', async (msg) => {
                 const creditCards = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const allTransactions = financeSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // 1. monthlyTransactions: Transações baseadas na DATA DE COMPRA (igual ao frontend)
-                const monthlyTransactions = allTransactions.filter(t => {
+                // --- 1. MOVIMENTAÇÕES EM CONTA (SALDO) ---
+                // Transações em dinheiro/saldo com data em Maio
+                const cashTransactions = allTransactions.filter(t => {
+                    if (t.paymentMethod === 'credit') return false;
                     const tDate = new Date(t.date + 'T12:00:00');
                     return tDate.getMonth() === currMonth && tDate.getFullYear() === currYear;
                 });
 
-                // 2. creditExpensesOfMonth: Transações de crédito baseadas no MÊS DA FATURA
-                const creditExpensesInInvoice = allTransactions.filter(t => {
+                const incomeTotal = cashTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+                const incomeReceived = cashTransactions.filter(t => t.type === 'income' && t.isCompleted).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+                
+                const expenseTotal = cashTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+                const expensePaid = cashTransactions.filter(t => t.type === 'expense' && t.isCompleted).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+                // --- 2. FATURAS DE CARTÃO (CICLO ATUAL) ---
+                const creditTransactionsInInvoice = allTransactions.filter(t => {
                     if (t.paymentMethod !== 'credit' || t.type !== 'expense') return false;
                     const card = creditCards.find(c => c.id === t.creditCardId);
                     const inv = getInvoiceMonth(t.date, card);
                     return inv?.month === currMonth && inv?.year === currYear;
                 });
 
-                const creditPaid = creditExpensesInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + t.value, 0);
+                const creditInvoiceTotal = creditTransactionsInInvoice.reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+                const creditInvoicePaid = creditTransactionsInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+                const creditInvoicePending = creditInvoiceTotal - creditInvoicePaid;
 
-                // 3. Cálculos do Relatório Geral (exatamente como no frontend)
-                const totalIncome = monthlyTransactions
-                    .filter(t => t.type === 'income' && t.isCompleted)
-                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-
-                const normalExpensesPaid = monthlyTransactions
-                    .filter(t => t.type === 'expense' && t.paymentMethod !== 'credit' && t.isCompleted)
-                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-                
-                const currentTotalExpense = normalExpensesPaid + creditPaid; // "Já Pago"
-
-                const reportTotalIncome = monthlyTransactions
-                    .filter(t => t.type === 'income')
-                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-
-                const reportTotalExpense = monthlyTransactions
-                    .filter(t => t.type === 'expense')
-                    .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-
-                const pendingIncome = reportTotalIncome - totalIncome;
-                const pendingExpense = reportTotalExpense - currentTotalExpense;
-
-                const realizedBalance = totalIncome - currentTotalExpense;
-                const projectedBalance = reportTotalIncome - reportTotalExpense;
+                // --- 3. TOTAIS GERAIS ---
+                const realizedBalance = incomeReceived - expensePaid - creditInvoicePaid;
+                const projectedBalance = incomeTotal - expenseTotal - creditInvoiceTotal;
 
                 const monthName = brazilTime.toLocaleString('pt-BR', { month: 'long' });
                 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
                 
-                let message = `📊 *Relatório Geral - ${capitalize(monthName)}*\n\n`;
+                let message = `📊 *Resumo de ${capitalize(monthName)}*\n\n`;
                 
-                message += `🟢 *Entradas Totais: R$ ${reportTotalIncome.toFixed(2)}*\n`;
-                message += `   • Já Recebido: R$ ${totalIncome.toFixed(2)}\n`;
-                message += `   • Pendente: R$ ${pendingIncome.toFixed(2)}\n\n`;
+                message += `💰 *Movimentações em Conta (Saldo):*\n`;
+                message += `🟢 Entradas: R$ ${incomeTotal.toFixed(2)} (Recebido: ${incomeReceived.toFixed(2)})\n`;
+                message += `🔴 Saídas: R$ ${expenseTotal.toFixed(2)} (Pago: ${expensePaid.toFixed(2)})\n\n`;
 
-                message += `🔴 *Saídas Totais: R$ ${reportTotalExpense.toFixed(2)}*\n`;
-                message += `   • Já Pago: R$ ${currentTotalExpense.toFixed(2)}\n`;
-                message += `   • Pendente: R$ ${pendingExpense.toFixed(2)}\n\n`;
+                message += `💳 *Faturas de Cartão (Ciclo Atual):*\n`;
+                message += `📑 Total das Faturas: R$ ${creditInvoiceTotal.toFixed(2)}\n`;
+                message += `✅ Já Pago: R$ ${creditInvoicePaid.toFixed(2)}\n`;
+                message += `⏳ *Pendente (A pagar): R$ ${creditInvoicePending.toFixed(2)}*\n\n`;
 
                 message += `⚖️ *Saldo Realizado:* R$ ${realizedBalance.toFixed(2)}\n`;
-                message += `💰 *Saldo Final Previsto:* R$ ${projectedBalance.toFixed(2)}\n\n`;
+                message += `📉 *Saldo Final Previsto:* R$ ${projectedBalance.toFixed(2)}\n\n`;
                 
-                // Categorias baseadas no mês de compra
+                // Categorias (Baseadas no Ciclo Financeiro)
                 const categories = {};
-                monthlyTransactions.filter(t => t.type === 'expense').forEach(t => {
-                    const cat = t.category || 'Outros';
-                    categories[cat] = (categories[cat] || 0) + (parseFloat(t.value) || 0);
+                allTransactions.forEach(t => {
+                    let isRelevant = false;
+                    if (t.type !== 'expense') return;
+
+                    if (t.paymentMethod === 'credit') {
+                        const card = creditCards.find(c => c.id === t.creditCardId);
+                        const inv = getInvoiceMonth(t.date, card);
+                        if (inv?.month === currMonth && inv?.year === currYear) isRelevant = true;
+                    } else {
+                        const tDate = new Date(t.date + 'T12:00:00');
+                        if (tDate.getMonth() === currMonth && tDate.getFullYear() === currYear) isRelevant = true;
+                    }
+
+                    if (isRelevant) {
+                        const cat = t.category || 'Outros';
+                        categories[cat] = (categories[cat] || 0) + (parseFloat(t.value) || 0);
+                    }
                 });
 
                 if (Object.keys(categories).length > 0) {
-                    message += `📂 *Gastos por Categoria:*\n`;
+                    message += `📂 *Gastos por Categoria (${capitalize(monthName)}):*\n`;
                     const sortedCats = Object.entries(categories).sort((a, b) => b[1] - a[1]);
                     sortedCats.forEach(([cat, val]) => {
                         message += `• ${cat}: R$ ${val.toFixed(2)}\n`;

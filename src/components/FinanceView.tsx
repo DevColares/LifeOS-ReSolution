@@ -333,19 +333,39 @@ export default function FinanceView({ transactions, setTransactions, categories,
 
     const monthlyBalance = totalIncome - totalExpense;
 
-    const reportTotalIncome = monthlyTransactions
-        .filter(t => t.type === 'income')
-        .reduce((acc, t) => acc + t.value, 0);
+    // --- NOVOS CÁLCULOS PARA RELATÓRIO SINCRONIZADO ---
+    const { incomeTotal, incomeReceived, cashExpenseTotal, cashExpensePaid, creditInvoiceTotal, creditInvoicePaid } = useMemo(() => {
+        const cashTransactions = monthlyTransactions.filter(t => t.paymentMethod !== 'credit');
+        
+        const iTotal = cashTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.value, 0);
+        const iReceived = cashTransactions.filter(t => t.type === 'income' && t.isCompleted).reduce((acc, t) => acc + t.value, 0);
+        
+        const ceTotal = cashTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.value, 0);
+        const cePaid = cashTransactions.filter(t => t.type === 'expense' && t.isCompleted).reduce((acc, t) => acc + t.value, 0);
 
-    const reportTotalExpense = monthlyTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((acc, t) => acc + t.value, 0);
+        const creditInInvoice = transactions.filter(t => {
+            if (t.paymentMethod !== 'credit' || t.type !== 'expense') return false;
+            const inv = getInvoiceMonth(t.date, t.creditCardId);
+            return inv?.month === viewingMonth && inv?.year === viewingYear;
+        });
 
-    const reportPendingIncome = reportTotalIncome - totalIncome;
-    const reportPendingExpense = reportTotalExpense - totalExpense;
+        const ciTotal = creditInInvoice.reduce((acc, t) => acc + t.value, 0);
+        const ciPaid = creditInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + t.value, 0);
 
-    const reportRealizedBalance = totalIncome - totalExpense;
-    const reportPendingBalance = reportPendingIncome - reportPendingExpense;
+        return {
+            incomeTotal: iTotal,
+            incomeReceived: iReceived,
+            cashExpenseTotal: ceTotal,
+            cashExpensePaid: cePaid,
+            creditInvoiceTotal: ciTotal,
+            creditInvoicePaid: ciPaid
+        };
+    }, [monthlyTransactions, transactions, viewingMonth, viewingYear, creditCards]);
+
+    const reportPendingIncome = incomeTotal - incomeReceived;
+    const reportPendingExpense = (cashExpenseTotal - cashExpensePaid) + (creditInvoiceTotal - creditInvoicePaid);
+    const reportRealizedBalance = incomeReceived - cashExpensePaid - creditInvoicePaid;
+    const reportProjectedBalance = incomeTotal - cashExpenseTotal - creditInvoiceTotal;
 
     const filteredTransactions = useMemo(() => {
         // 1. Get non-credit transactions for the month
@@ -411,11 +431,26 @@ export default function FinanceView({ transactions, setTransactions, categories,
 
     const categoryData = useMemo(() => {
         const cats: Record<string, number> = {};
-        monthlyTransactions.filter(t => t.type === 'expense').forEach(t => {
-            cats[t.category] = (cats[t.category] || 0) + t.value;
+        
+        allTransactions.forEach(t => {
+            if (t.type !== 'expense') return;
+            let isRelevant = false;
+
+            if (t.paymentMethod === 'credit') {
+                const inv = getInvoiceMonth(t.date, t.creditCardId);
+                if (inv?.month === viewingMonth && inv?.year === viewingYear) isRelevant = true;
+            } else {
+                const tDate = new Date(t.date + 'T12:00:00');
+                if (tDate.getMonth() === viewingMonth && tDate.getFullYear() === viewingYear) isRelevant = true;
+            }
+
+            if (isRelevant) {
+                cats[t.category] = (cats[t.category] || 0) + t.value;
+            }
         });
+
         return Object.entries(cats).map(([name, value]) => ({ name, value }));
-    }, [monthlyTransactions]);
+    }, [allTransactions, viewingMonth, viewingYear, creditCards]);
 
     const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f', '#ffbb28'];
 
@@ -727,64 +762,69 @@ export default function FinanceView({ transactions, setTransactions, categories,
                             {/* Single Master Cash Flow Summary Card */}
                             <div className="space-y-6">
                                 <div className="p-6 rounded-[2rem] bg-secondary/20 border border-slate-200 dark:border-white/5 space-y-6">
-                                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-muted-foreground flex items-center gap-2">
-                                        <Wallet className="h-4 w-4 text-primary" />
-                                        Resumo Geral de Caixa
-                                    </h4>
-                                    
-                                    {/* Entradas Row */}
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Entradas Totais</span>
-                                            <span className="font-display font-black text-success">{formatCurrency(reportTotalIncome)}</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-success/30 pb-2">
-                                            <div>
-                                                <p className="text-[9px] font-bold uppercase text-slate-500">Já Recebido</p>
-                                                <p className="text-xs font-black text-success/80">{formatCurrency(totalIncome)}</p>
+                                    {/* Resumo de Saldo (Dinheiro) */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary/60 flex items-center gap-2">
+                                            <DollarSign className="h-3 w-3" />
+                                            Fluxo de Caixa (Dinheiro/Saldo)
+                                        </h4>
+                                        <div className="space-y-3 pl-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Entradas em Maio</span>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-success">{formatCurrency(incomeTotal)}</p>
+                                                    <p className="text-[10px] text-muted-foreground">Rec: {formatCurrency(incomeReceived)}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-[9px] font-bold uppercase text-slate-500">Ainda por Entrar</p>
-                                                <p className="text-xs font-black text-orange-500">{formatCurrency(reportPendingIncome)}</p>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Saídas em Maio</span>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-destructive">{formatCurrency(cashExpenseTotal)}</p>
+                                                    <p className="text-[10px] text-muted-foreground">Pago: {formatCurrency(cashExpensePaid)}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Saídas Row */}
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-white/5">
-                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Saídas Totais</span>
-                                            <span className="font-display font-black text-destructive">{formatCurrency(reportTotalExpense)}</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-destructive/30 pb-2">
-                                            <div>
-                                                <p className="text-[9px] font-bold uppercase text-slate-500">Já Pago</p>
-                                                <p className="text-xs font-black text-destructive/80">{formatCurrency(totalExpense)}</p>
+                                    {/* Resumo de Cartões */}
+                                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-500/60 flex items-center gap-2">
+                                            <CreditCard className="h-3 w-3" />
+                                            Faturas de Cartão (Ciclo Atual)
+                                        </h4>
+                                        <div className="space-y-2 pl-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Total das Faturas</span>
+                                                <span className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(creditInvoiceTotal)}</span>
                                             </div>
-                                            <div>
-                                                <p className="text-[9px] font-bold uppercase text-slate-500">Ainda por Sair</p>
-                                                <p className="text-xs font-black text-orange-500">{formatCurrency(reportPendingExpense)}</p>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs text-slate-500">Já Pago</span>
+                                                <span className="text-xs font-bold text-success">{formatCurrency(creditInvoicePaid)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center p-2 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                                                <span className="text-xs font-bold text-orange-600 dark:text-orange-400">Pendente (A pagar)</span>
+                                                <span className="text-sm font-black text-orange-600 dark:text-orange-400">{formatCurrency(creditInvoiceTotal - creditInvoicePaid)}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Final Summary Row */}
-                                    <div className="pt-4 border-t-2 border-slate-950/5 dark:border-white/5 space-y-4">
+                                    <div className="pt-6 border-t-2 border-slate-950/5 dark:border-white/5 space-y-4">
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm font-bold text-slate-900 dark:text-white">Saldo Realizado (Hoje)</span>
-                                            <span className={cn("text-lg font-display font-black leading-none", reportRealizedBalance >= 0 ? "text-success" : "text-destructive")}>
+                                            <span className={cn("text-xl font-display font-black leading-none", reportRealizedBalance >= 0 ? "text-success" : "text-destructive")}>
                                                 {formatCurrency(reportRealizedBalance)}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-center p-4 rounded-2xl bg-primary/10 border border-primary/20">
+                                        <div className="flex justify-between items-center p-4 rounded-3xl bg-primary/10 border border-primary/20 shadow-inner">
                                             <div className="min-w-0">
                                                 <p className="text-[10px] font-black uppercase text-primary/60">Saldo Final do Mês (Previsto)</p>
-                                                <p className="text-base font-display font-black text-slate-950 dark:text-white mt-0.5 truncate">{formatCurrency(reportTotalIncome - reportTotalExpense)}</p>
+                                                <p className="text-xl font-display font-black text-slate-950 dark:text-white mt-0.5 truncate">{formatCurrency(reportProjectedBalance)}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[8px] font-bold uppercase text-slate-500">Pendente Total</p>
-                                                <p className={cn("text-xs font-black", reportPendingBalance >= 0 ? "text-orange-500" : "text-destructive/80")}>
-                                                    {reportPendingBalance >= 0 ? '+' : ''}{formatCurrency(reportPendingBalance)}
+                                                <p className="text-[8px] font-bold uppercase text-slate-500">Diferença Pendente</p>
+                                                <p className={cn("text-xs font-black", (incomeTotal - incomeReceived) - (cashExpenseTotal - cashExpensePaid + (creditInvoiceTotal - creditInvoicePaid)) >= 0 ? "text-orange-500" : "text-destructive/80")}>
+                                                    {formatCurrency((incomeTotal - incomeReceived) - (cashExpenseTotal - cashExpensePaid + (creditInvoiceTotal - creditInvoicePaid)))}
                                                 </p>
                                             </div>
                                         </div>
