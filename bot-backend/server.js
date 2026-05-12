@@ -283,39 +283,58 @@ bot.on('message', async (msg) => {
                 const year = brazilTime.getFullYear();
                 const month = brazilTime.getMonth(); // 0-indexed
                 const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+                const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-31`;
                 
-                // --- Resumo Financeiro Geral ---
+                // --- Resumo Financeiro (Relatório Geral) ---
                 const financeSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`)
                     .where('date', '>=', startOfMonth)
+                    .where('date', '<=', endOfMonth)
                     .get();
 
-                let totalIncome = 0;
-                let totalExpense = 0;
+                let realizedIncome = 0;
+                let pendingIncome = 0;
+                let realizedExpense = 0;
+                let pendingExpense = 0;
                 const categories = {};
 
                 financeSnap.forEach(doc => {
                     const data = doc.data();
                     const val = parseFloat(data.value) || 0;
                     if (data.type === 'income') {
-                        totalIncome += val;
+                        if (data.isCompleted) realizedIncome += val;
+                        else pendingIncome += val;
                     } else {
-                        totalExpense += val;
+                        if (data.isCompleted) realizedExpense += val;
+                        else pendingExpense += val;
+                        
                         const cat = data.category || 'Outros';
                         categories[cat] = (categories[cat] || 0) + val;
                     }
                 });
 
-                const balance = totalIncome - totalExpense;
+                const totalIncome = realizedIncome + pendingIncome;
+                const totalExpense = realizedExpense + pendingExpense;
+                const realizedBalance = realizedIncome - realizedExpense;
+                const projectedBalance = totalIncome - totalExpense;
+
                 const monthName = brazilTime.toLocaleString('pt-BR', { month: 'long' });
                 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
                 
-                let message = `📊 *Resumo de ${capitalize(monthName)}*\n\n`;
-                message += `🟢 *Entradas:* R$ ${totalIncome.toFixed(2)}\n`;
-                message += `🔴 *Saídas:* R$ ${totalExpense.toFixed(2)}\n`;
-                message += `⚖️ *Saldo:* R$ ${balance.toFixed(2)}\n\n`;
+                let message = `📊 *Relatório Geral - ${capitalize(monthName)}*\n\n`;
+                
+                message += `🟢 *Entradas Totais: R$ ${totalIncome.toFixed(2)}*\n`;
+                message += `   • Realizado: R$ ${realizedIncome.toFixed(2)}\n`;
+                message += `   • Pendente: R$ ${pendingIncome.toFixed(2)}\n\n`;
+
+                message += `🔴 *Saídas Totais: R$ ${totalExpense.toFixed(2)}*\n`;
+                message += `   • Realizado: R$ ${realizedExpense.toFixed(2)}\n`;
+                message += `   • Pendente: R$ ${pendingExpense.toFixed(2)}\n\n`;
+
+                message += `⚖️ *Saldo Realizado:* R$ ${realizedBalance.toFixed(2)}\n`;
+                message += `💰 *Saldo Final Previsto:* R$ ${projectedBalance.toFixed(2)}\n\n`;
                 
                 if (Object.keys(categories).length > 0) {
-                    message += `*Gastos por Categoria:*\n`;
+                    message += `📂 *Gastos por Categoria:*\n`;
                     const sortedCats = Object.entries(categories).sort((a, b) => b[1] - a[1]);
                     sortedCats.forEach(([cat, val]) => {
                         message += `• ${cat}: R$ ${val.toFixed(2)}\n`;
