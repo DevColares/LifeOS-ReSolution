@@ -32,6 +32,13 @@ const bot = new TelegramBot(token, { polling: true });
 const app = express();
 app.use(express.json());
 
+// Registrar comandos no menu do Telegram
+bot.setMyCommands([
+    { command: '/start', description: 'Iniciar o bot' },
+    { command: '/resumo', description: 'Ver resumo financeiro do mês' },
+    { command: '/cancel', description: 'Cancelar operação atual' }
+]);
+
 console.log(`Bot LifeOS (com OCR + Push) iniciado para o UID: ${YOUR_FIREBASE_UID}`);
 
 // --- LÓGICA DO BOT ---
@@ -266,7 +273,108 @@ bot.on('message', async (msg) => {
     if (msg.photo || msg.document) return;
     if (!text) return;
 
-    if (text.toLowerCase() === '/cancel' || text.toLowerCase() === '/start') {
+    if (text.toLowerCase() === '/cancel' || text.toLowerCase() === '/start' || text.toLowerCase() === '/resumo') {
+        if (text.toLowerCase() === '/resumo') {
+            try {
+                bot.sendMessage(chatId, "📊 Gerando resumo completo...");
+                
+                const now = new Date();
+                const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+                const year = brazilTime.getFullYear();
+                const month = brazilTime.getMonth(); // 0-indexed
+                const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+                
+                // --- Resumo Financeiro Geral ---
+                const financeSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`)
+                    .where('date', '>=', startOfMonth)
+                    .get();
+
+                let totalIncome = 0;
+                let totalExpense = 0;
+                const categories = {};
+
+                financeSnap.forEach(doc => {
+                    const data = doc.data();
+                    const val = parseFloat(data.value) || 0;
+                    if (data.type === 'income') {
+                        totalIncome += val;
+                    } else {
+                        totalExpense += val;
+                        const cat = data.category || 'Outros';
+                        categories[cat] = (categories[cat] || 0) + val;
+                    }
+                });
+
+                const balance = totalIncome - totalExpense;
+                const monthName = brazilTime.toLocaleString('pt-BR', { month: 'long' });
+                const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+                
+                let message = `📊 *Resumo de ${capitalize(monthName)}*\n\n`;
+                message += `🟢 *Entradas:* R$ ${totalIncome.toFixed(2)}\n`;
+                message += `🔴 *Saídas:* R$ ${totalExpense.toFixed(2)}\n`;
+                message += `⚖️ *Saldo:* R$ ${balance.toFixed(2)}\n\n`;
+                
+                if (Object.keys(categories).length > 0) {
+                    message += `*Gastos por Categoria:*\n`;
+                    const sortedCats = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+                    sortedCats.forEach(([cat, val]) => {
+                        message += `• ${cat}: R$ ${val.toFixed(2)}\n`;
+                    });
+                }
+
+                // --- Cartões de Crédito ---
+                const cardsSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get();
+                const creditCards = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                if (creditCards.length > 0) {
+                    message += `\n💳 *Cartões de Crédito:*\n`;
+                    
+                    // Buscar transações de crédito (ampla faixa para cobrir faturas)
+                    const creditSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`)
+                        .where('paymentMethod', '==', 'credit')
+                        .get();
+
+                    const nextMonthDate = new Date(year, month + 1, 1);
+                    const nextMonth = nextMonthDate.getMonth();
+                    const nextYear = nextMonthDate.getFullYear();
+
+                    creditCards.forEach(card => {
+                        let currentInvoice = 0;
+                        let nextInvoice = 0;
+                        let usedLimit = 0;
+
+                        creditSnap.forEach(doc => {
+                            const t = doc.data();
+                            if (t.creditCardId !== card.id) return;
+                            
+                            const inv = getInvoiceMonth(t.date, card);
+                            if (inv.month === month && inv.year === year) {
+                                currentInvoice += t.value;
+                            } else if (inv.month === nextMonth && inv.year === nextYear) {
+                                nextInvoice += t.value;
+                            }
+                            
+                            if (!t.isCompleted) {
+                                usedLimit += t.value;
+                            }
+                        });
+
+                        const availableLimit = card.limit - usedLimit;
+                        message += `\n*${card.name}*\n`;
+                        message += `• Fatura Atual: R$ ${currentInvoice.toFixed(2)}\n`;
+                        message += `• Próxima Fatura: R$ ${nextInvoice.toFixed(2)}\n`;
+                        message += `• Limite Livre: R$ ${availableLimit.toFixed(2)}\n`;
+                    });
+                }
+
+                bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+            } catch (error) {
+                console.error("Erro no resumo:", error.message || error);
+                bot.sendMessage(chatId, "⚠️ Erro ao gerar resumo.");
+            }
+            return;
+        }
+
         await db.collection("botSessions").doc(chatId.toString()).delete();
         if (text === '/start') {
             bot.sendMessage(chatId, "👋 Olá! Envie um valor ou a *foto do comprovante* para começar.");
@@ -398,13 +506,8 @@ async function finalize(chatId, sessionRef, data) {
                     tokens: tokens
                 };
 
-
-
-
                 const response = await admin.messaging().sendEachForMulticast(message);
                 console.log(`Push enviado: ${response.successCount} sucesso, ${response.failureCount} falha.`);
-                
-                // Limpeza opcional de tokens inválidos poderia ser feita aqui
             }
         } catch (err) {
             console.error("Erro ao enviar notificação (Firestore/Push):", err.message || err);
@@ -413,6 +516,23 @@ async function finalize(chatId, sessionRef, data) {
     } catch (e) {
         bot.sendMessage(chatId, "❌ Erro ao salvar.");
     }
+}
+
+function getInvoiceMonth(dateStr, card) {
+    if (!card) return null;
+    const purchaseDate = new Date(dateStr + 'T12:00:00');
+    const day = purchaseDate.getDate();
+    let invoiceMonth = purchaseDate.getMonth();
+    let invoiceYear = purchaseDate.getFullYear();
+
+    if (day > card.closingDay) {
+        invoiceMonth++;
+        if (invoiceMonth > 11) {
+            invoiceMonth = 0;
+            invoiceYear++;
+        }
+    }
+    return { month: invoiceMonth, year: invoiceYear };
 }
 
 app.get('/', (req, res) => res.send('Bot Online com OCR e Notificações'));
