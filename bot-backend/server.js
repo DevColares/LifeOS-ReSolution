@@ -36,6 +36,7 @@ app.use(express.json());
 bot.setMyCommands([
     { command: '/start', description: 'Iniciar o bot' },
     { command: '/resumo', description: 'Ver resumo financeiro do mês' },
+    { command: '/analisar', description: '🧠 Analisar impacto de uma compra futura' },
     { command: '/cancel', description: 'Cancelar operação atual' }
 ]);
 
@@ -273,7 +274,13 @@ bot.on('message', async (msg) => {
     if (msg.photo || msg.document) return;
     if (!text) return;
 
-    if (text.toLowerCase() === '/cancel' || text.toLowerCase() === '/start' || text.toLowerCase() === '/resumo') {
+    if (text.toLowerCase() === '/cancel' || text.toLowerCase() === '/start' || text.toLowerCase() === '/resumo' || text.toLowerCase() === '/analisar') {
+        if (text.toLowerCase() === '/analisar') {
+            const sessionRef = db.collection("botSessions").doc(chatId.toString());
+            await sessionRef.set({ step: "analyst_name", chatId });
+            bot.sendMessage(chatId, "🧠 *Modo Analista Financeiro ativo!*\n\nMe diga: o que você pretende comprar?", { parse_mode: 'Markdown' });
+            return;
+        }
         if (text.toLowerCase() === '/resumo') {
             try {
                 bot.sendMessage(chatId, "📊 Gerando resumo detalhado...");
@@ -283,16 +290,10 @@ bot.on('message', async (msg) => {
                 const currMonth = brazilTime.getMonth();
                 const currYear = brazilTime.getFullYear();
 
-                const [financeSnap, cardsSnap] = await Promise.all([
-                    db.collection(`users/${YOUR_FIREBASE_UID}/finance`).get(),
-                    db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get()
-                ]);
-
-                const creditCards = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const financeSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`).get();
                 const allTransactions = financeSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
                 // --- 1. MOVIMENTAÇÕES EM CONTA (SALDO) ---
-                // Transações em dinheiro/saldo com data em Maio
                 const cashTransactions = allTransactions.filter(t => {
                     if (t.paymentMethod === 'credit') return false;
                     const tDate = new Date(t.date + 'T12:00:00');
@@ -305,21 +306,9 @@ bot.on('message', async (msg) => {
                 const expenseTotal = cashTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
                 const expensePaid = cashTransactions.filter(t => t.type === 'expense' && t.isCompleted).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
 
-                // --- 2. FATURAS DE CARTÃO (CICLO ATUAL) ---
-                const creditTransactionsInInvoice = allTransactions.filter(t => {
-                    if (t.paymentMethod !== 'credit' || t.type !== 'expense') return false;
-                    const card = creditCards.find(c => c.id === t.creditCardId);
-                    const inv = getInvoiceMonth(t.date, card);
-                    return inv?.month === currMonth && inv?.year === currYear;
-                });
-
-                const creditInvoiceTotal = creditTransactionsInInvoice.reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-                const creditInvoicePaid = creditTransactionsInInvoice.filter(t => t.isCompleted).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-                const creditInvoicePending = creditInvoiceTotal - creditInvoicePaid;
-
                 // --- 3. TOTAIS GERAIS ---
-                const realizedBalance = incomeReceived - expensePaid - creditInvoicePaid;
-                const projectedBalance = incomeTotal - expenseTotal - creditInvoiceTotal;
+                const realizedBalance = incomeReceived - expensePaid;
+                const projectedBalance = incomeTotal - expenseTotal;
 
                 const monthName = brazilTime.toLocaleString('pt-BR', { month: 'long' });
                 const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -330,30 +319,17 @@ bot.on('message', async (msg) => {
                 message += `🟢 Entradas: R$ ${incomeTotal.toFixed(2)} (Recebido: ${incomeReceived.toFixed(2)})\n`;
                 message += `🔴 Saídas: R$ ${expenseTotal.toFixed(2)} (Pago: ${expensePaid.toFixed(2)})\n\n`;
 
-                message += `💳 *Faturas de Cartão (Ciclo Atual):*\n`;
-                message += `📑 Total das Faturas: R$ ${creditInvoiceTotal.toFixed(2)}\n`;
-                message += `✅ Já Pago: R$ ${creditInvoicePaid.toFixed(2)}\n`;
-                message += `⏳ *Pendente (A pagar): R$ ${creditInvoicePending.toFixed(2)}*\n\n`;
-
                 message += `⚖️ *Saldo Realizado:* R$ ${realizedBalance.toFixed(2)}\n`;
                 message += `📉 *Saldo Final Previsto:* R$ ${projectedBalance.toFixed(2)}\n\n`;
                 
                 // Categorias (Baseadas no Ciclo Financeiro)
                 const categories = {};
                 allTransactions.forEach(t => {
-                    let isRelevant = false;
                     if (t.type !== 'expense') return;
+                    if (t.paymentMethod === 'credit') return; // ignore legacy credit
 
-                    if (t.paymentMethod === 'credit') {
-                        const card = creditCards.find(c => c.id === t.creditCardId);
-                        const inv = getInvoiceMonth(t.date, card);
-                        if (inv?.month === currMonth && inv?.year === currYear) isRelevant = true;
-                    } else {
-                        const tDate = new Date(t.date + 'T12:00:00');
-                        if (tDate.getMonth() === currMonth && tDate.getFullYear() === currYear) isRelevant = true;
-                    }
-
-                    if (isRelevant) {
+                    const tDate = new Date(t.date + 'T12:00:00');
+                    if (tDate.getMonth() === currMonth && tDate.getFullYear() === currYear) {
                         const cat = t.category || 'Outros';
                         categories[cat] = (categories[cat] || 0) + (parseFloat(t.value) || 0);
                     }
@@ -364,37 +340,6 @@ bot.on('message', async (msg) => {
                     const sortedCats = Object.entries(categories).sort((a, b) => b[1] - a[1]);
                     sortedCats.forEach(([cat, val]) => {
                         message += `• ${cat}: R$ ${val.toFixed(2)}\n`;
-                    });
-                }
-
-                // Cartões de Crédito (Projeções)
-                if (creditCards.length > 0) {
-                    message += `\n💳 *Cartões de Crédito:*\n`;
-                    const nextMonthDate = new Date(currYear, currMonth + 1, 1);
-                    const nextMonth = nextMonthDate.getMonth();
-                    const nextYear = nextMonthDate.getFullYear();
-
-                    creditCards.forEach(card => {
-                        const cardInvoiceCurr = allTransactions.filter(t => {
-                            if (t.paymentMethod !== 'credit' || t.creditCardId !== card.id || t.type !== 'expense') return false;
-                            const inv = getInvoiceMonth(t.date, card);
-                            return inv?.month === currMonth && inv?.year === currYear;
-                        }).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-
-                        const cardInvoiceNext = allTransactions.filter(t => {
-                            if (t.paymentMethod !== 'credit' || t.creditCardId !== card.id || t.type !== 'expense') return false;
-                            const inv = getInvoiceMonth(t.date, card);
-                            return inv?.month === nextMonth && inv?.year === nextYear;
-                        }).reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-
-                        const usedLimit = allTransactions
-                            .filter(t => t.paymentMethod === 'credit' && t.creditCardId === card.id && !t.isCompleted)
-                            .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
-
-                        message += `\n*${card.name}*\n`;
-                        message += `• Fatura Atual: R$ ${cardInvoiceCurr.toFixed(2)}\n`;
-                        message += `• Próxima Fatura: R$ ${cardInvoiceNext.toFixed(2)}\n`;
-                        message += `• Limite Livre: R$ ${(card.limit - usedLimit).toFixed(2)}\n`;
                     });
                 }
 
@@ -449,33 +394,36 @@ bot.on('message', async (msg) => {
         }
 
         if (session.step === "waiting_category") {
-            await sessionRef.update({ step: "waiting_method", category: text });
-            if (session.type === "income") {
-                // Para entradas, geralmente vai direto para o saldo
-                return finalize(chatId, sessionRef, { ...session, category: text, paymentMethod: "balance" });
-            } else {
-                const keyboard = { reply_markup: { keyboard: [[{ text: "Saldo em Conta" }], [{ text: "Cartão de Crédito" }]], one_time_keyboard: true, resize_keyboard: true }};
-                bot.sendMessage(chatId, "💳 Como pagou?", keyboard);
-            }
+            return finalize(chatId, sessionRef, { ...session, category: text, paymentMethod: "balance" });
+        }
+
+        // --- ANALISTA FINANCEIRO ---
+        if (session.step === "analyst_name") {
+            await sessionRef.update({ step: "analyst_value", productName: text });
+            bot.sendMessage(chatId, `📦 *${text}*\n\n💰 Qual o valor total da compra?`, { parse_mode: 'Markdown' });
             return;
         }
 
-        if (session.step === "waiting_method") {
-            if (text === "Cartão de Crédito") {
-                await sessionRef.update({ step: "waiting_card", paymentMethod: "credit" });
-                const cardsSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get();
-                const cards = cardsSnap.docs.map(d => [{ text: d.data().name }]);
-                bot.sendMessage(chatId, "💳 Qual Cartão?", { reply_markup: { keyboard: cards, one_time_keyboard: true, resize_keyboard: true }});
-            } else {
-                return finalize(chatId, sessionRef, { ...session, paymentMethod: "balance" });
+        if (session.step === "analyst_value") {
+            const value = parseFloat(text.replace(',', '.').replace('R$', '').trim());
+            if (isNaN(value) || value <= 0) {
+                bot.sendMessage(chatId, "❌ Valor inválido. Digite o valor em reais (ex: 3500 ou 3500,00):");
+                return;
             }
+            await sessionRef.update({ step: "analyst_installments", value });
+            const keyboard = { reply_markup: { keyboard: [[{ text: "1" }, { text: "2" }, { text: "3" }], [{ text: "6" }, { text: "10" }, { text: "12" }]], one_time_keyboard: true, resize_keyboard: true }};
+            bot.sendMessage(chatId, `💰 *R$ ${value.toFixed(2)}*\n\n🗓️ Em quantas vezes? (1 = à vista)`, { ...keyboard, parse_mode: 'Markdown' });
             return;
         }
 
-        if (session.step === "waiting_card") {
-            const cardsSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/creditCards`).get();
-            const selectedCard = cardsSnap.docs.find(d => d.data().name === text);
-            return finalize(chatId, sessionRef, { ...session, paymentMethod: "credit", creditCardId: selectedCard?.id, cardName: text });
+        if (session.step === "analyst_installments") {
+            const installments = parseInt(text);
+            if (isNaN(installments) || installments < 1 || installments > 60) {
+                bot.sendMessage(chatId, "❌ Número inválido. Digite de 1 a 60:");
+                return;
+            }
+            bot.sendMessage(chatId, "🔍 Analisando suas finanças... Aguarde.");
+            return analyzeAndReport(chatId, sessionRef, { ...session, installments });
         }
     } catch (e) {
         console.error("Erro no fluxo:", e.message || e);
@@ -549,21 +497,133 @@ async function finalize(chatId, sessionRef, data) {
     }
 }
 
-function getInvoiceMonth(dateStr, card) {
-    if (!card) return null;
-    const purchaseDate = new Date(dateStr + 'T12:00:00');
-    const day = purchaseDate.getDate();
-    let invoiceMonth = purchaseDate.getMonth();
-    let invoiceYear = purchaseDate.getFullYear();
+// --- ANALISTA FINANCEIRO ---
+async function analyzeAndReport(chatId, sessionRef, data) {
+    try {
+        const now = new Date();
+        const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+        const currMonth = brazilTime.getMonth();
+        const currYear = brazilTime.getFullYear();
 
-    if (day > card.closingDay) {
-        invoiceMonth++;
-        if (invoiceMonth > 11) {
-            invoiceMonth = 0;
-            invoiceYear++;
+        const financeSnap = await db.collection(`users/${YOUR_FIREBASE_UID}/finance`).get();
+        const allTransactions = financeSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const totalValue = data.value;
+        const installments = data.installments;
+        const installmentValue = totalValue / installments;
+
+        // Calcular entradas do mês atual como referência para meses futuros
+        const currentMonthIncome = allTransactions
+            .filter(t => {
+                if (t.type !== 'income' || t.paymentMethod === 'credit') return false;
+                const tDate = new Date(t.date + 'T12:00:00');
+                return tDate.getMonth() === currMonth && tDate.getFullYear() === currYear;
+            })
+            .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+        const monthNames = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        let message = `🧠 *Análise de Compra: ${data.productName}*\n\n`;
+
+        if (installments > 1) {
+            message += `💳 Valor total: R$ ${totalValue.toFixed(2)} em ${installments}x de R$ ${installmentValue.toFixed(2)}\n\n`;
+        } else {
+            message += `💳 Valor total: R$ ${totalValue.toFixed(2)} (à vista)\n\n`;
         }
+
+        message += `📊 *Impacto por Mês:*\n`;
+
+        let worstBalance = Infinity;
+        let worstMonthName = '';
+        let dangerMonths = 0;
+        let warningMonths = 0;
+
+        for (let i = 0; i < installments; i++) {
+            const targetDate = new Date(currYear, currMonth + i, 1);
+            const tMonth = targetDate.getMonth();
+            const tYear = targetDate.getFullYear();
+
+            // Buscar transações reais desse mês
+            const monthTransactions = allTransactions.filter(t => {
+                if (t.paymentMethod === 'credit') return false;
+                const tDate = new Date(t.date + 'T12:00:00');
+                return tDate.getMonth() === tMonth && tDate.getFullYear() === tYear;
+            });
+
+            const monthIncome = monthTransactions
+                .filter(t => t.type === 'income')
+                .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+            const monthExpense = monthTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((acc, t) => acc + (parseFloat(t.value) || 0), 0);
+
+            // Se não tem entradas nesse mês, usa a referência do mês atual
+            const effectiveIncome = monthIncome > 0 ? monthIncome : currentMonthIncome;
+            const isProjected = monthIncome === 0 && i > 0;
+
+            const currentBalance = effectiveIncome - monthExpense;
+            const balanceWithPurchase = currentBalance - installmentValue;
+
+            // Margem = quanto sobra em relação às entradas
+            const margin = effectiveIncome > 0 ? (balanceWithPurchase / effectiveIncome) * 100 : -100;
+
+            let riskIcon, riskText;
+            if (balanceWithPurchase < 0) {
+                riskIcon = '🔴';
+                riskText = `PERIGO! Ficará negativo: R$ ${balanceWithPurchase.toFixed(2)}`;
+                dangerMonths++;
+            } else if (margin < 20) {
+                riskIcon = '🟡';
+                riskText = `Atenção: apenas ${margin.toFixed(0)}% de margem livre`;
+                warningMonths++;
+            } else {
+                riskIcon = '🟢';
+                riskText = `Tranquilo: ${margin.toFixed(0)}% de margem livre`;
+            }
+
+            if (balanceWithPurchase < worstBalance) {
+                worstBalance = balanceWithPurchase;
+                worstMonthName = `${monthNames[tMonth]}/${tYear}`;
+            }
+
+            message += `\n*${monthNames[tMonth]}/${tYear}*${isProjected ? ' _(projetado)_' : ''}\n`;
+            message += `  ✅ Entradas: R$ ${effectiveIncome.toFixed(2)}\n`;
+            message += `  📤 Saídas: R$ ${monthExpense.toFixed(2)}\n`;
+            message += `  💰 Saldo atual: R$ ${currentBalance.toFixed(2)}\n`;
+            message += `  🛒 Com a compra: R$ ${balanceWithPurchase.toFixed(2)}\n`;
+            message += `  ${riskIcon} ${riskText}\n`;
+        }
+
+        // Resumo Final
+        message += `\n━━━━━━━━━━━━━━━━━━\n`;
+        message += `⚠️ *Resumo Geral:*\n`;
+        message += `• Menor saldo: R$ ${worstBalance.toFixed(2)} em ${worstMonthName}\n`;
+        message += `• Total comprometido: R$ ${totalValue.toFixed(2)} ao longo de ${installments} ${installments === 1 ? 'mês' : 'meses'}\n`;
+
+        if (dangerMonths > 0) {
+            message += `\n🔴 *RECOMENDAÇÃO: NÃO COMPRE!*\n`;
+            message += `Você ficará no vermelho em ${dangerMonths} ${dangerMonths === 1 ? 'mês' : 'meses'}. `;
+            message += `Essa compra pode comprometer seriamente suas finanças.`;
+        } else if (warningMonths > 0) {
+            message += `\n🟡 *RECOMENDAÇÃO: COMPRE COM CAUTELA*\n`;
+            message += `Nenhum mês fica negativo, mas ${warningMonths} ${warningMonths === 1 ? 'mês ficará' : 'meses ficarão'} apertado${warningMonths === 1 ? '' : 's'}. `;
+            message += `Avalie se é essencial.`;
+        } else {
+            message += `\n🟢 *RECOMENDAÇÃO: PODE COMPRAR!*\n`;
+            message += `Todos os meses ficam com margem confortável. Compra segura!`;
+        }
+
+        await sessionRef.delete();
+        bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+
+    } catch (e) {
+        console.error("Erro na análise:", e.message || e);
+        bot.sendMessage(chatId, "⚠️ Erro ao analisar. Tente novamente.");
     }
-    return { month: invoiceMonth, year: invoiceYear };
 }
 
 app.get('/', (req, res) => res.send('Bot Online com OCR e Notificações'));
