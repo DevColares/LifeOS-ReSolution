@@ -4,7 +4,7 @@ import {
     Wallet, TrendingUp, TrendingDown, Plus, Trash2, Calendar,
     DollarSign, Check, ChevronLeft, ChevronRight, ChevronDown, BarChart3, Repeat,
     Tag, ArrowUp, ArrowDown, Edit2, ArrowUpDown, MoreVertical,
-    Settings2, CreditCard, Search
+    Settings2, CreditCard, Search, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -294,6 +294,30 @@ export default function FinanceView({ transactions, setTransactions, categories 
 
     const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f', '#ffbb28'];
 
+    const exportMonthlyData = () => {
+        const csvContent = [
+            ["Data", "Descrição", "Categoria", "Tipo", "Valor", "Status"],
+            ...monthlyTransactions.map(t => [
+                t.date,
+                `"${t.description}"`,
+                `"${t.category}"`,
+                t.type === 'income' ? 'Receita' : 'Despesa',
+                t.value.toString().replace('.', ','),
+                t.isCompleted ? 'Concluído' : 'Pendente'
+            ])
+        ].map(e => e.join(";")).join("\n");
+
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `relatorio-${monthNames[viewingMonth]}-${viewingYear}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="space-y-10 pb-20 animate-in fade-in duration-700">
             {/* Header with Month Selector */}
@@ -428,7 +452,13 @@ export default function FinanceView({ transactions, setTransactions, categories 
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl bg-background/95 backdrop-blur-xl border-slate-200 dark:border-white/10 shadow-2xl">
                         <DialogHeader>
-                            <DialogTitle className="text-slate-950 dark:text-white">Relatório Geral: {monthNames[viewingMonth]} {viewingYear}</DialogTitle>
+                            <div className="flex items-center justify-between pr-6">
+                                <DialogTitle className="text-slate-950 dark:text-white">Relatório Geral: {monthNames[viewingMonth]} {viewingYear}</DialogTitle>
+                                <button onClick={exportMonthlyData} className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                                    <Download className="h-4 w-4" />
+                                    Exportar CSV
+                                </button>
+                            </div>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
                             {/* Single Master Cash Flow Summary Card */}
